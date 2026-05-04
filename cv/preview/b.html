@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Михаил Меланьин – CV (B · Engineering Pragmatic)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Serif:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
+<style>
+  :root { font-size: 16px; }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'IBM Plex Sans', system-ui, sans-serif;
+    font-size: 0.94rem;
+    line-height: 1.5;
+    color: #1a1a1a;
+    background: #f5f5f4;
+    padding: 2.5rem 1.25rem;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .page {
+    max-width: 820px;
+    margin: 0 auto;
+    background: #ffffff;
+    padding: 3.5rem 4.25rem;
+    box-shadow: 0 2px 24px rgba(0,0,0,0.06);
+  }
+
+  header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 2rem;
+    margin-bottom: 2.25rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid #e3e3e0;
+  }
+
+  .headshot {
+    flex: 0 0 auto;
+    width: 6.5rem;
+    height: 6.5rem;
+    object-fit: cover;
+    filter: grayscale(100%);
+    /* square: */
+    border-radius: 2px;
+    /* round alternative: border-radius: 50%; */
+  }
+
+  .header-text { text-align: right; }
+
+  h1 {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 1.75rem;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    line-height: 1.1;
+    margin-bottom: 0.65rem;
+    color: #0d0d0d;
+  }
+
+  .contacts {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 0.78rem;
+    color: #555;
+    line-height: 1.6;
+    letter-spacing: 0;
+  }
+
+  .contacts a { color: #555; text-decoration: none; border-bottom: 1px dotted #999; }
+  .contacts a:hover { color: #111; border-color: #111; }
+
+  .summary {
+    font-size: 0.98rem;
+    line-height: 1.55;
+    color: #2a2a2a;
+    margin-bottom: 1.85rem;
+    padding-bottom: 1.4rem;
+    border-bottom: 1px solid #e3e3e0;
+  }
+
+  h2 {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 0.7rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    margin-top: 1.85rem;
+    margin-bottom: 0.95rem;
+    color: #666;
+  }
+
+  h2::before {
+    content: '// ';
+    color: #b0b0b0;
+  }
+
+  h3 {
+    font-family: 'IBM Plex Sans', system-ui, sans-serif;
+    font-size: 1rem;
+    font-weight: 600;
+    letter-spacing: -0.005em;
+    margin-top: 1.05rem;
+    margin-bottom: 0.15rem;
+    color: #111;
+  }
+
+  .role-meta {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 0.78rem;
+    color: #666;
+    margin-bottom: 0.55rem;
+    letter-spacing: 0;
+  }
+
+  ul { list-style: none; padding-left: 0; }
+
+  li {
+    position: relative;
+    padding-left: 1rem;
+    margin-bottom: 0.35rem;
+  }
+
+  li::before {
+    content: '–';
+    position: absolute;
+    left: 0;
+    color: #999;
+  }
+
+  .education-item, .accel-item { margin-bottom: 0.25rem; }
+
+  @media print {
+    @page { size: A4; margin: 14mm 16mm; }
+    :root { font-size: 11pt; }
+    html, body { background: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    body { padding: 0; }
+    .page { box-shadow: none; padding: 0; max-width: 100%; background: #fff; }
+    .headshot { filter: grayscale(100%); }
+    h1 { font-size: 22pt; }
+    .summary { font-size: 11pt; }
+    h2 { font-size: 8pt; }
+    h3 { font-size: 11.5pt; }
+    .role-meta { font-size: 9.5pt; }
+    li { page-break-inside: avoid; }
+    h3 { page-break-after: avoid; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header>
+    <img class="headshot" src="../img/headshot.jpg" alt="Михаил Меланьин">
+    <div class="header-text">
+      <h1>Михаил Меланьин</h1>
+      <div class="contacts">
+        Telegram <a href="https://t.me/mike_melanin">@mike_melanin</a> &nbsp;·&nbsp;
+        +7 (925) 116-46-69 &nbsp;·&nbsp;
+        <a href="mailto:m.v.melanin@gmail.com">m.v.melanin@gmail.com</a>
+      </div>
+    </div>
+  </header>
+
+  <p class="summary">
+    BizDev / Commercial лидер (10+ лет) в B2B tech и робототехнике: GTM с нуля, сегментация / ICP, УТП, пилоты и партнёрства. Переговоры с C-level, упаковка сделок и доведение до контрактов; фокус на B2B tech, mobility / automotive, AI-инфраструктуре.
+  </p>
+
+  <h2>Образование</h2>
+  <div class="education-item">МГТУ им. Баумана – Магистр, Робототехника и Комплексная Автоматизация, 2010</div>
+  <div class="accel-item">Акселераторы: 500Startups (San Francisco), Techstars (Montreal), Betaworks (New York)</div>
+
+  <h2>Опыт</h2>
+
+  <h3>Основатель / Head of Business Development & Product, BerryAI</h3>
+  <div class="role-meta">2022 – 2025 · AI-кулон-компаньон с экраном для микровзаимодействий, памяти и контекста</div>
+  <ul>
+    <li>Сформировал продуктовую концепцию: roadmap, MVP-метрики, приоритизация; провёл UX-тесты.</li>
+    <li>Координировал разработку и интеграцию hardware / firmware с мобильным контуром: audio → iOS → ASR → LLM → экран.</li>
+    <li>Организовал сборку и тестирование прототипов: BOM, поставки компонентов, сборка.</li>
+    <li>Вёл переговоры с ключевыми игроками рынка: сбор требований, сценарии использования, пилоты и условия партнёрств.</li>
+    <li>Упаковка и GTM: позиционирование, pre-seed материалы (финмодель, narrative, pitch / Q&A), инвесторская воронка.</li>
+  </ul>
+
+  <h3>Entrepreneur in Residence / Product & Partnerships, Sber Robotics Lab</h3>
+  <div class="role-meta">2021 – 2022</div>
+  <ul>
+    <li>Вёл продуктовые и коммерческие гипотезы в направлениях last-mile delivery и логистики для ритейла.</li>
+    <li>Построил пайплайн акселерации проектов: ~30 инициатив в воронке, 5 доведены до пилота / запуска.</li>
+    <li>Запускал пилоты с внутренними заказчиками экосистемы: сбор требований, экономика кейса, дизайн экспериментов.</li>
+    <li>Координировал кросс-функциональные команды (R&D, software, hardware) и доводил прототипы до тестов в поле.</li>
+  </ul>
+
+  <h3>CEO / Founder, Nopilot.ai</h3>
+  <div class="role-meta">2019 – 2021 · Автономный наземный ровер для last-mile delivery</div>
+  <ul>
+    <li>Собрал и возглавил команду, запустил разработку (hardware + software).</li>
+    <li>Довёл продукт до прототипа, провёл 2 пилота: Москва и Монреаль.</li>
+    <li>Прошёл Techstars (Montreal), привлёк seed-инвестиции.</li>
+    <li>Вёл партнёрства и переговоры с потенциальными заказчиками и операторами доставки.</li>
+  </ul>
+
+  <h3>Co-founder / CBDO, Cube.JS / Statsbot</h3>
+  <div class="role-meta">2014 – 2017 · B2B SaaS, BI / data platform</div>
+  <ul>
+    <li>Запустил и профинансировал продукт; масштабировал до 10 000+ пользователей и 300+ платящих компаний.</li>
+    <li>Построил GTM и коммерцию: сегментация, упаковка УТП, воронка, партнёрства и каналы привлечения.</li>
+    <li>Заключил партнёрства с Mixpanel, Slack, Salesforce, Google Analytics.</li>
+    <li>Привлёк инвестиции: Slack Fund, 500 Startups, Eniac VC, Betaworks, Innovation Endeavors.</li>
+    <li>Стартап года 2016 (Россия); в 2017 – выход с мультипликатором ~10x.</li>
+  </ul>
+
+  <h2>Вне работы</h2>
+  <p>Беговые и горные лыжи, гравийный велоспорт; организую Moscow Gravel Cycling Club (500+).</p>
+
+</div>
+</body>
+</html>
