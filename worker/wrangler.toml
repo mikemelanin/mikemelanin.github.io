@@ -1,0 +1,19 @@
+name = "mike-twin"
+main = "index.js"
+compatibility_date = "2026-09-01"
+
+# Промпт собирается из twin/kb.js перед каждым deploy/dev
+[build]
+command = "node build-prompt.mjs"
+
+[vars]
+ALLOWED_ORIGINS = "https://mikemelanin.github.io"
+LLM_BASE = "https://api.neuraldeep.ru/v1"
+LLM_MODEL = "qwen3.6-35b-a3b-noreason"
+PER_IP_HOUR = "20"
+PER_DAY = "300"
+
+# Счётчики лимитов
+[[kv_namespaces]]
+binding = "RL"
+id = "5ec12b55e7d74794abd41521d579c8b4"
