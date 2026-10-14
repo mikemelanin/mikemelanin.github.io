@@ -1,9 +1,9 @@
-// AI-двойник: чат на странице. Сейчас отвечает по базе twin/kb.js.
-// Когда появится бэкенд с LLM, впишите его адрес в ENDPOINT: POST {question, history} -> {answer}.
-// Если бэкенд недоступен, двойник молча вернётся к базе.
+// AI-двойник: чат на странице. Готовые вопросы-кнопки отвечает по базе twin/kb.js,
+// свободные вопросы – через LLM-бэкенд в ENDPOINT (код в worker/): POST {question, history} -> {answer}.
+// Если бэкенд недоступен или не ответил за 20 секунд, двойник молча вернётся к базе.
 // Задачи-подсказки – KB.tasks. Если на странице есть конструктор (window.MM_BUILDER), в ответе появится кнопка Собрать архитектуру.
 (() => {
-  const ENDPOINT = '';
+  const ENDPOINT = 'https://mike-twin.m-v-melanin.workers.dev';
   const KB = window.TWIN_KB;
   const root = document.querySelector('.twin-chat');
   if (!KB || !root) return;
@@ -134,7 +134,7 @@
   const remote = async question => {
     if (!ENDPOINT) return null;
     try {
-      const r = await fetch(ENDPOINT, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ question, history }) });
+      const r = await fetch(ENDPOINT, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ question, history }), signal: AbortSignal.timeout(20000) });
       if (!r.ok) return null;
       const { answer } = await r.json();
       return answer || null;
