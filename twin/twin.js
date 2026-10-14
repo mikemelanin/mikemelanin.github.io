@@ -1,0 +1,177 @@
+// AI-двойник: чат на странице. Сейчас отвечает по базе twin/kb.js.
+// Когда появится бэкенд с LLM, впишите его адрес в ENDPOINT: POST {question, history} -> {answer}.
+// Если бэкенд недоступен, двойник молча вернётся к базе.
+(() => {
+  const ENDPOINT = '';
+  const KB = window.TWIN_KB;
+  const root = document.querySelector('.twin-chat');
+  if (!KB || !root) return;
+
+  const log = root.querySelector('.chat-log');
+  const chips = root.querySelector('.chat-chips');
+  const form = root.querySelector('.chat-form');
+  const input = form.querySelector('textarea');
+  const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const byId = Object.fromEntries(KB.entries.map(e => [e.id, e]));
+  const history = [];
+  let busy = false;
+
+  // ---------- matching ----------
+  const ENDINGS = ['иями', 'ями', 'ами', 'ого', 'его', 'ому', 'ему', 'ыми', 'ими', 'иях', 'ешь', 'ете', 'ишь', 'ите', 'ость', 'ах', 'ях', 'ов', 'ев', 'ий', 'ый', 'ой', 'ая', 'яя', 'ое', 'ее', 'ие', 'ые', 'ую', 'юю', 'ом', 'ем', 'ам', 'ям', 'ет', 'ит', 'ут', 'ют', 'ат', 'ят', 'ть', 'ся', 'сь', 'а', 'я', 'о', 'е', 'и', 'ы', 'у', 'ю', 'ь', 'й'];
+  const norm = s => s.toLowerCase().replace(/ё/g, 'е').replace(/[^a-zа-я0-9]+/g, ' ').trim();
+  const stem = w => {
+    if (w.length <= 4) return w;
+    for (const e of ENDINGS) if (w.endsWith(e) && w.length - e.length >= 3) return w.slice(0, -e.length);
+    return w;
+  };
+  const hit = (k, w) => {
+    if (k.length <= 4) return w === k || stem(w) === stem(k);
+    const sk = stem(k);
+    return w.startsWith(k) || stem(w) === sk || (sk.length >= 5 && w.startsWith(sk));
+  };
+  const keys = KB.entries.map(e => e.keys.map(k => norm(k).split(' ').filter(Boolean)));
+
+  const match = text => {
+    const words = norm(text).split(' ').filter(Boolean);
+    if (!words.length) return null;
+    let best = null, top = 0;
+    KB.entries.forEach((e, i) => {
+      let score = 0;
+      keys[i].forEach(parts => {
+        if (parts.every(p => words.some(w => hit(p, w)))) score += parts.length > 1 ? parts.length * 1.5 : 1 + Math.min(parts[0].length, 10) / 20;
+      });
+      if (score > top) { top = score; best = e; }
+    });
+    return best;
+  };
+
+  // ---------- rendering ----------
+  const esc = s => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const inline = s => esc(s)
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\[(.+?)\]\((.+?)\)/g, (_, t, u) => `<a href="${u}"${/^https?:/.test(u) ? ' target="_blank" rel="noopener"' : ''}>${t}</a>`);
+  const md = text => text.split('\n\n').map(block => {
+    const lines = block.split('\n');
+    if (lines.every(l => l.startsWith('- '))) return '<ul>' + lines.map(l => `<li>${inline(l.slice(2))}</li>`).join('') + '</ul>';
+    const items = lines.filter(l => l.startsWith('- '));
+    if (items.length) {
+      const head = lines.filter(l => !l.startsWith('- ')).join(' ');
+      return `<p>${inline(head)}</p><ul>${items.map(l => `<li>${inline(l.slice(2))}</li>`).join('')}</ul>`;
+    }
+    return `<p>${inline(block)}</p>`;
+  }).join('');
+
+  const scrollDown = () => { log.scrollTop = log.scrollHeight; };
+  const add = (who, html) => {
+    const el = document.createElement('div');
+    el.className = 'tw-msg tw-' + who;
+    el.innerHTML = html;
+    log.append(el);
+    scrollDown();
+    return el;
+  };
+
+  const wait = ms => new Promise(r => setTimeout(r, ms));
+  const type = async el => {
+    if (still) return;
+    const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    const nodes = [];
+    while (walker.nextNode()) nodes.push([walker.currentNode, walker.currentNode.textContent]);
+    nodes.forEach(([n]) => n.textContent = '');
+    el.classList.add('is-typing');
+    for (const [n, full] of nodes) {
+      for (let i = 0; i < full.length; i += 3) {
+        n.textContent = full.slice(0, i + 3);
+        if (i % 24 === 0) { scrollDown(); await wait(14); }
+      }
+    }
+    el.classList.remove('is-typing');
+    scrollDown();
+  };
+
+  const tgButton = q => {
+    const url = KB.tg + (q ? '?text=' + encodeURIComponent(q) : '');
+    return `<a class="tw-tg" href="${url}" target="_blank" rel="noopener"${q ? ` data-copy="${esc(q)}"` : ''}><svg aria-hidden="true" viewBox="0 0 24 24" fill="currentColor"><path d="M21.9 4.3 18.7 19.5c-.2 1-.9 1.3-1.7.8l-4.8-3.5-2.3 2.2c-.3.3-.5.5-1 .5l.3-4.9 8.9-8c.4-.3-.1-.5-.6-.2l-11 6.9-4.7-1.5c-1-.3-1-1 .2-1.5L20.5 3c.9-.3 1.6.2 1.4 1.3Z"/></svg>Написать настоящему Михаилу</a>`;
+  };
+
+  const showChips = ids => {
+    chips.innerHTML = '';
+    ids.filter(id => byId[id]).forEach(id => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = byId[id].q;
+      b.addEventListener('click', () => ask(byId[id].q, byId[id]));
+      chips.append(b);
+    });
+  };
+
+  // ---------- answering ----------
+  const remote = async question => {
+    if (!ENDPOINT) return null;
+    try {
+      const r = await fetch(ENDPOINT, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ question, history }) });
+      if (!r.ok) return null;
+      const { answer } = await r.json();
+      return answer || null;
+    } catch { return null; }
+  };
+
+  const ask = async (question, entry) => {
+    question = question.trim();
+    if (!question || busy) return;
+    busy = true;
+    form.classList.add('is-busy');
+    chips.innerHTML = '';
+    add('me', `<p>${esc(question)}</p>`);
+    const dots = add('bot', '<span class="tw-dots" aria-label="Двойник печатает"><i></i><i></i><i></i></span>');
+    const think = wait(still ? 0 : 500 + Math.random() * 500);
+
+    const fromLLM = entry ? null : await remote(question);
+    const hitEntry = entry || (fromLLM ? null : match(question));
+    const text = fromLLM || (hitEntry ? hitEntry.a : KB.fallback);
+    await think;
+
+    dots.innerHTML = md(text);
+    await type(dots);
+    if (!hitEntry && !fromLLM) dots.insertAdjacentHTML('beforeend', tgButton(question));
+    else if (hitEntry && hitEntry.tg) dots.insertAdjacentHTML('beforeend', tgButton());
+    scrollDown();
+
+    history.push({ role: 'user', content: question }, { role: 'assistant', content: text });
+    showChips(hitEntry ? hitEntry.next || KB.start : KB.start.filter(id => id !== 'about'));
+    scrollDown();
+    busy = false;
+    form.classList.remove('is-busy');
+  };
+
+  // текст вопроса копируем: если Telegram не подставит его в чат, его легко вставить
+  log.addEventListener('click', e => {
+    const a = e.target.closest('[data-copy]');
+    if (a && navigator.clipboard) navigator.clipboard.writeText(a.dataset.copy).catch(() => {});
+  });
+
+  form.addEventListener('submit', e => {
+    e.preventDefault();
+    const q = input.value;
+    input.value = '';
+    ask(q);
+  });
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); form.requestSubmit(); }
+  });
+
+  // старт: приветствие появляется, когда чат попадает в экран
+  let started = false;
+  const start = async () => {
+    if (started) return;
+    started = true;
+    const el = add('bot', md(KB.greeting));
+    await type(el);
+    showChips(KB.start);
+    scrollDown();
+  };
+  if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver(([e]) => { if (e.isIntersecting) { io.disconnect(); start(); } }, { threshold: .3 });
+    io.observe(root);
+  } else start();
+})();

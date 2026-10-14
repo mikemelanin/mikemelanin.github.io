@@ -539,6 +539,70 @@
   .tlp-more { display: inline-block; margin-top: 14px; font-weight: 600; font-size: 16px; color: var(--figure); }
   .tl-years { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; padding-right: 7.7%; }
 
+  /* ---------- AI twin ---------- */
+  .twin-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 640px); gap: 32px clamp(32px, 5vw, 80px); align-items: center; }
+  .twin-eyebrow { display: inline-flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 500; color: var(--muted); margin-bottom: 20px; }
+  .twin-eyebrow .live-dot { animation: live 1.6s ease-in-out infinite; }
+  .twin-copy h2 { margin-bottom: 24px; }
+  .twin-copy p:last-child { color: var(--muted); max-width: 30em; }
+  .twin-chat {
+    display: flex; flex-direction: column; height: min(640px, 82svh);
+    background: var(--card); border: 1px solid var(--line); border-radius: 28px; overflow: hidden;
+    box-shadow: 0 30px 80px -40px rgba(36,51,242,.45);
+  }
+  .chat-head { display: flex; align-items: center; gap: 12px; padding: 16px 20px; border-bottom: 1px solid var(--line); }
+  .chat-head img { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; filter: grayscale(1); }
+  .chat-head div { display: flex; flex-direction: column; line-height: 1.25; flex: 1; min-width: 0; }
+  .chat-head strong { font-size: 16px; }
+  .chat-head div span { font-size: 14px; color: var(--muted); }
+  .chat-badge { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; padding: 4px 10px; border-radius: 999px; background: var(--chip); color: var(--figure); }
+  .chat-log { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 12px; scroll-behavior: smooth; overscroll-behavior: contain; }
+  .tw-msg { max-width: 88%; padding: 12px 16px; border-radius: 20px; font-size: 16px; line-height: 1.5; animation: tw-in .3s cubic-bezier(.2,.8,.2,1); }
+  .tw-msg p + p, .tw-msg p + ul, .tw-msg ul + p { margin-top: 8px; }
+  .tw-msg ul { padding-left: 18px; }
+  .tw-msg li + li { margin-top: 4px; }
+  .tw-msg a { color: var(--figure); }
+  .tw-bot { align-self: flex-start; background: var(--chip); border-bottom-left-radius: 6px; }
+  .tw-me { align-self: flex-end; background: var(--blue); color: #fff; border-bottom-right-radius: 6px; }
+  .tw-msg.is-typing > :last-child::after { content: '▍'; margin-left: 2px; color: var(--figure); animation: tw-blink .8s steps(1) infinite; }
+  .tw-tg { display: inline-flex; align-items: center; gap: 8px; margin-top: 12px; padding: 9px 14px; border-radius: 999px; background: var(--blue); color: #fff !important; text-decoration: none; font-weight: 600; font-size: 15px; }
+  .tw-tg svg { width: 18px; height: 18px; }
+  .tw-dots { display: inline-flex; gap: 5px; padding: 6px 2px; }
+  .tw-dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); animation: tw-dot 1s ease-in-out infinite; }
+  .tw-dots i:nth-child(2) { animation-delay: .15s; }
+  .tw-dots i:nth-child(3) { animation-delay: .3s; }
+  @keyframes tw-dot { 0%, 60%, 100% { opacity: .3; transform: none; } 30% { opacity: 1; transform: translateY(-4px); } }
+  @keyframes tw-blink { 50% { opacity: 0; } }
+  @keyframes tw-in { from { opacity: 0; transform: translateY(8px); } }
+  .chat-chips { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 20px; }
+  .chat-chips:not(:empty) { padding-bottom: 12px; }
+  .chat-chips button {
+    font: inherit; font-size: 14px; color: var(--ink); background: transparent; cursor: pointer;
+    border: 1px solid var(--line); border-radius: 999px; padding: 7px 14px; transition: border-color .15s, color .15s;
+  }
+  .chat-chips button:hover { border-color: var(--figure); color: var(--figure); }
+  .chat-form { display: flex; align-items: flex-end; gap: 10px; padding: 12px 12px 12px 20px; border-top: 1px solid var(--line); }
+  .chat-form textarea {
+    flex: 1; resize: none; border: 0; background: transparent; color: var(--ink);
+    font: inherit; font-size: 16px; line-height: 1.5; padding: 10px 0; max-height: 120px; outline: none;
+  }
+  .chat-form textarea::placeholder { color: var(--muted); }
+  .chat-form button {
+    flex: none; width: 44px; height: 44px; border-radius: 50%; border: 0; cursor: pointer;
+    background: var(--blue); color: #fff; display: grid; place-items: center; transition: transform .15s, opacity .15s;
+  }
+  .chat-form button:hover { transform: translateY(-2px); }
+  .chat-form button svg { width: 20px; height: 20px; }
+  .chat-form.is-busy button { opacity: .4; pointer-events: none; }
+  @media (max-width: 860px) {
+    .twin-grid { grid-template-columns: 1fr; }
+    .twin-chat { height: min(600px, 78svh); }
+    .chat-chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+    .chat-chips::-webkit-scrollbar { display: none; }
+    .chat-chips button { flex: none; }
+    .tw-msg { font-size: 15px; }
+  }
+
   /* ---------- sticky mini nav ---------- */
   .mini-nav {
     position: fixed; inset: 0 0 auto 0; z-index: 20;
@@ -653,6 +717,7 @@
       <li><a href="#approach">Подход</a></li>
       <li><a href="#results">Результаты</a></li>
       <li><a href="#experience">Опыт</a></li>
+      <li><a href="#twin">AI-двойник</a></li>
       <li><a href="#contact">Контакты</a></li>
     </ul>
     <div class="nav-actions">
@@ -707,6 +772,7 @@
       <li><a href="#approach" tabindex="-1">Подход</a></li>
       <li><a href="#results" tabindex="-1">Результаты</a></li>
       <li><a href="#experience" tabindex="-1">Опыт</a></li>
+      <li><a href="#twin" tabindex="-1">AI-двойник</a></li>
       <li><a href="#contact" tabindex="-1">Контакты</a></li>
     </ul>
     <div class="nav-actions">
@@ -1050,6 +1116,30 @@
           <svg class="route" viewBox="0 0 300 70" aria-hidden="true"><path d="M6 54 C 40 6, 62 66, 98 36 S 150 6, 172 38 S 226 70, 250 30 S 284 18, 294 12"/><circle r="6" cx="0" cy="0"><animateMotion dur="8s" repeatCount="indefinite" keyPoints="0;1;0" keyTimes="0;0.5;1" calcMode="spline" keySplines="0.45 0 0.55 1;0.45 0 0.55 1" path="M6 54 C 40 6, 62 66, 98 36 S 150 6, 172 38 S 226 70, 250 30 S 284 18, 294 12"/></circle></svg>
           <ul><li>Организация клуба. Ещё беговые и горные лыжи.</li></ul>
         </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="twin" class="twin">
+    <div class="wrap twin-grid">
+      <div class="twin-copy">
+        <p class="twin-eyebrow"><span class="live-dot" aria-hidden="true"></span>Онлайн 24/7</p>
+        <h2>Спросите моего AI&#8209;двойника</h2>
+        <p>Он знает мой опыт, проекты и подход к внедрению AI. Отвечает сразу, в любое время суток. Если вопрос нестандартный, честно скажет и передаст его настоящему мне.</p>
+      </div>
+      <div class="twin-chat" role="region" aria-label="Чат с AI-двойником">
+        <div class="chat-head">
+          <img src="img/photo.jpg" alt="" width="44" height="44">
+          <div><strong>Михаил Меланьин</strong><span>AI-двойник</span></div>
+          <span class="chat-badge">бета</span>
+        </div>
+        <div class="chat-log" aria-live="polite"></div>
+        <div class="chat-chips"></div>
+        <form class="chat-form">
+          <label class="sr-only" for="twin-input">Вопрос двойнику</label>
+          <textarea id="twin-input" rows="1" autocomplete="off" placeholder="Спросите о чём угодно"></textarea>
+          <button type="submit" aria-label="Спросить"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button>
+        </form>
       </div>
     </div>
   </section>
@@ -1575,5 +1665,7 @@
     }
   })();
 </script>
+<script src="twin/kb.js" defer></script>
+<script src="twin/twin.js" defer></script>
 </body>
 </html>
