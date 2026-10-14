@@ -606,102 +606,148 @@
     }
   };
 
-  // герой: робот-пилот в лётных очках и с шарфом
+  // герой: робот-пилот в шлеме, с плащом и джетпаком
   const drawBot = () => {
     const h = p.y, x = px, air = h > 0;
     const duck = p.duck && state === 'run';
     const hurt = state === 'over' || (state === 'run' && inv > 1.1);
     const happy = state === 'win' || state === 'finish';
     const moving = state === 'run' || state === 'finish';
+    const boost = air && p.vy > 0 ? (p.jumps === 2 ? 1.6 : 1.1) : air ? .7 : moving ? .35 : 0;
     // тень
     ctx.fillStyle = C.ink; ctx.globalAlpha = .13 * Math.max(.3, 1 - h / 200);
     ctx.beginPath(); ctx.ellipse(x, GY + 3, 20 * Math.max(.5, 1 - h / 300), 4, 0, 0, Math.PI * 2); ctx.fill();
+    // линии скорости
+    if (moving && !still && !duck) {
+      ctx.strokeStyle = C.fig; ctx.lineCap = 'round'; ctx.lineWidth = 2;
+      [[-52, 30, 18], [-64, 52, 26], [-48, 70, 14]].forEach(([dx, dy, len], i) => {
+        const k = (t * 3 + i * .37) % 1;
+        ctx.globalAlpha = .35 * (1 - k);
+        line(x + dx - k * 30, GY - h - dy, x + dx - k * 30 - len, GY - h - dy);
+      });
+    }
     ctx.globalAlpha = state === 'run' && inv > 0 && Math.floor(t * 14) % 2 ? .35 : 1;
     ctx.save();
     ctx.translate(x, GY - h);
     if (duck) ctx.scale(1.2, .52);
     if (state === 'over') ctx.rotate(.14);
+    else if (air) ctx.rotate(p.vy > 0 ? -.06 : .05);
     const run = air || !moving ? 0 : Math.sin(p.phase);
     const lift = air || !moving ? 0 : Math.max(0, Math.cos(p.phase));
     const bob = air ? 0 : (moving ? Math.abs(run) * 1.8 : Math.sin(t * 2.4) * 1.2);
     ctx.lineCap = 'round'; ctx.lineJoin = 'round';
 
-    // шарф летит назад
-    const wave = Math.sin(t * (moving ? 14 : 4)) * (moving ? 4 : 2);
-    const up = air ? -8 : 0;
-    ctx.strokeStyle = RED; ctx.lineWidth = 6;
+    // плащ развевается назад
+    const wave = Math.sin(t * (moving ? 13 : 3.5));
+    const fly = air ? 10 : moving ? 4 : 0;
+    ctx.fillStyle = RED;
     ctx.beginPath();
-    ctx.moveTo(-6, -40 - bob);
-    ctx.quadraticCurveTo(-24, -44 - bob + wave + up, -36, -40 - bob - wave + up * 1.5);
-    ctx.stroke();
-    ctx.lineWidth = 4;
-    ctx.beginPath(); ctx.moveTo(-34, -40 - bob - wave + up * 1.5); ctx.lineTo(-44, -36 - bob + wave * .6 + up * 2); ctx.stroke();
+    ctx.moveTo(-10, -44 - bob);
+    ctx.quadraticCurveTo(-30 - fly, -40 - bob + wave * 3 - fly * .4, -40 - fly * 1.4, -24 - bob + wave * 5 - fly);
+    ctx.lineTo(-34 - fly * 1.2, -16 - bob - wave * 3 - fly * .6);
+    ctx.lineTo(-26 - fly, -20 - bob + wave * 2 - fly * .3);
+    ctx.quadraticCurveTo(-16, -22 - bob, -8, -18 - bob);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = 'rgba(0,0,0,.18)';
+    ctx.beginPath(); ctx.moveTo(-10, -44 - bob); ctx.quadraticCurveTo(-22, -36 - bob, -26 - fly, -20 - bob + wave * 2 - fly * .3); ctx.lineTo(-8, -18 - bob); ctx.fill();
 
-    // ноги
-    ctx.strokeStyle = C.ink; ctx.lineWidth = 6;
-    const legs = air ? [[-6, -16, -9, -6], [6, -16, 10, -8]] : [[-5, -16, -5 + run * 8, -4 - lift * 3], [5, -16, 5 - run * 8, -4 - (1 - lift) * 3 * (moving ? 1 : 0)]];
+    // джетпак и пламя
+    ctx.save();
+    ctx.translate(0, -bob);
+    if (boost > 0 && !duck) {
+      const fl = still ? 1 : .8 + Math.random() * .4;
+      [-19, -11].forEach(fx => {
+        const len = (10 + boost * 16) * fl;
+        let g = ctx.createLinearGradient(0, -18, 0, -18 + len);
+        g.addColorStop(0, '#FFF6D6'); g.addColorStop(.35, GOLD); g.addColorStop(1, 'rgba(229,72,77,0)');
+        ctx.fillStyle = g;
+        ctx.beginPath(); ctx.moveTo(fx - 3.5, -18); ctx.quadraticCurveTo(fx, -18 + len * 1.15, fx + 3.5, -18); ctx.fill();
+      });
+    }
+    ctx.fillStyle = C.ink; rr(-24, -42, 14, 24, 5); ctx.fill();
+    ctx.fillStyle = GOLD; rr(-23, -21, 6, 4, 1.5); ctx.fill(); rr(-15, -21, 6, 4, 1.5); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,.22)'; rr(-21, -39, 3, 14, 1.5); ctx.fill();
+    ctx.restore();
+
+    // ноги в ботинках
+    ctx.strokeStyle = C.ink; ctx.lineWidth = 6.5;
+    const legs = air ? [[-6, -16, -10, -7], [6, -16, 9, -10]] : [[-5, -16, -5 + run * 8, -4 - lift * 3], [5, -16, 5 - run * 8, -4 - (1 - lift) * 3 * (moving ? 1 : 0)]];
     if (!duck) legs.forEach(([a, b2, c, d]) => {
       line(a, b2, c, d);
-      ctx.fillStyle = C.ink; rr(c - 6, d - 1, 12, 6, 3); ctx.fill();
+      ctx.fillStyle = C.ink; rr(c - 6, d - 3, 13, 8, 3); ctx.fill();
+      ctx.fillStyle = GOLD; rr(c - 6, d + 3, 13, 2.5, 1.2); ctx.fill();
     });
 
-    // корпус
+    // корпус-броня
     ctx.translate(0, -bob);
-    let g = ctx.createLinearGradient(0, -40, 0, -14);
+    let g = ctx.createLinearGradient(0, -44, 0, -14);
     g.addColorStop(0, C.fig); g.addColorStop(1, C.blue);
-    ctx.fillStyle = g; rr(-14, -40, 28, 25, 9); ctx.fill();
-    ctx.fillStyle = 'rgba(255,255,255,.18)'; rr(-8, -33, 16, 12, 4); ctx.fill();
-    ctx.fillStyle = hurt ? RED : LIVE; dot(0, -27, 2.6 + (moving ? Math.sin(t * 8) * .6 : 0));
+    ctx.fillStyle = g; rr(-14, -44, 28, 29, 9); ctx.fill();
+    ctx.fillStyle = C.ink; rr(-14, -21, 28, 5, 2.5); ctx.fill();
+    ctx.fillStyle = GOLD; rr(-3.5, -21, 7, 5, 1.5); ctx.fill();
+    // реактор на груди
+    const core = hurt ? RED : LIVE;
+    const cp = moving ? Math.sin(t * 8) * .8 : 0;
+    ctx.fillStyle = SCREEN; dot(0, -32, 6.5);
+    ctx.shadowColor = core; ctx.shadowBlur = 10;
+    ctx.fillStyle = core; dot(0, -32, 3.6 + cp);
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = 'rgba(255,255,255,.35)'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(0, -32, 6.5, 0, Math.PI * 2); ctx.stroke();
     // руки
     ctx.strokeStyle = C.fig; ctx.lineWidth = 6;
-    const arms = air || happy ? [[-14, -35, -22, -47], [14, -35, 22, -47]] : [[-14, -35, -19 - run * 5, -23], [14, -35, 19 + run * 5, -23]];
-    arms.forEach(([a, b2, c, d]) => { line(a, b2, c, d); ctx.fillStyle = '#fff'; dot(c, d, 3.6); });
-    // узел шарфа
-    ctx.fillStyle = RED; rr(-12, -43, 24, 7, 3.5); ctx.fill();
+    const arms = happy ? [[-14, -38, -22, -54], [14, -38, 22, -54]]
+      : air ? [[-14, -38, -26, -30], [14, -38, 24, -48]]
+      : [[-14, -38, -19 - run * 6, -25], [14, -38, 19 + run * 6, -25]];
+    arms.forEach(([a, b2, c, d]) => { line(a, b2, c, d); ctx.fillStyle = C.ink; dot(c, d, 4.2); });
+    // наплечники
+    ctx.fillStyle = GOLD;
+    [-1, 1].forEach(sd => { ctx.beginPath(); ctx.ellipse(sd * 13, -41, 7, 4.5, sd * .25, 0, Math.PI * 2); ctx.fill(); });
 
-    // голова
-    g = ctx.createLinearGradient(0, -78, 0, -40);
+    // шлем
+    g = ctx.createLinearGradient(0, -82, 0, -44);
     g.addColorStop(0, C.fig); g.addColorStop(1, C.blue);
-    ctx.fillStyle = g; rr(-23, -78, 46, 37, 14); ctx.fill();
-    ctx.strokeStyle = 'rgba(255,255,255,.35)'; ctx.lineWidth = 2.5;
-    ctx.beginPath(); ctx.arc(-9, -64, 10, Math.PI * 1.05, Math.PI * 1.45); ctx.stroke();
-    ctx.fillStyle = C.fig; dot(-24, -58, 4); dot(24, -58, 4);
-    // экран-лицо
-    ctx.fillStyle = SCREEN; rr(-17, -66, 34, 23, 8); ctx.fill();
+    ctx.fillStyle = g; rr(-21, -82, 44, 39, 16); ctx.fill();
+    // гребень
+    ctx.fillStyle = RED;
+    ctx.beginPath(); ctx.moveTo(-6, -82); ctx.quadraticCurveTo(2, -95, 14, -91); ctx.quadraticCurveTo(8, -85, 10, -81); ctx.closePath(); ctx.fill();
+    // блик на шлеме
+    ctx.strokeStyle = 'rgba(255,255,255,.4)'; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.arc(-6, -68, 11, Math.PI * 1.1, Math.PI * 1.45); ctx.stroke();
+    // уши-динамики
+    ctx.fillStyle = C.ink; rr(-25, -66, 7, 14, 3); ctx.fill();
+    ctx.fillStyle = GOLD; dot(-21.5, -59, 2);
+    // визор, чуть вперёд по ходу
+    ctx.fillStyle = SCREEN;
+    ctx.beginPath(); ctx.moveTo(-12, -70); ctx.lineTo(23, -70); ctx.quadraticCurveTo(26, -60, 21, -52); ctx.lineTo(-9, -52); ctx.quadraticCurveTo(-14, -61, -12, -70); ctx.fill();
     const look = state === 'run' ? 2 : 0;
-    ctx.shadowColor = hurt ? RED : '#8FE9FF'; ctx.shadowBlur = 6;
+    ctx.shadowColor = hurt ? RED : '#8FE9FF'; ctx.shadowBlur = 8;
     if (hurt) {
-      ctx.strokeStyle = RED; ctx.lineWidth = 2.2;
-      [-7, 7].forEach(ex => { line(ex - 3, -58, ex + 3, -52); line(ex + 3, -58, ex - 3, -52); });
+      ctx.strokeStyle = RED; ctx.lineWidth = 2.4;
+      [1, 14].forEach(ex => { line(ex - 3, -65, ex + 3, -58); line(ex + 3, -65, ex - 3, -58); });
     } else if (happy) {
       ctx.strokeStyle = '#DFFBFF'; ctx.lineWidth = 2.6;
-      [-7, 7].forEach(ex => { ctx.beginPath(); ctx.arc(ex, -53, 3.6, Math.PI * 1.1, Math.PI * 1.9); ctx.stroke(); });
+      [1, 14].forEach(ex => { ctx.beginPath(); ctx.arc(ex, -59, 3.6, Math.PI * 1.1, Math.PI * 1.9); ctx.stroke(); });
     } else {
+      // решительный взгляд: скошенные глаза
       ctx.fillStyle = '#DFFBFF';
-      const eh = p.blink > 0 ? 1.2 : 9;
-      [-7, 7].forEach(ex => { rr(ex - 3 + look, -55 - eh / 2, 6, eh, 3); ctx.fill(); });
+      const eh = p.blink > 0 ? 1.2 : 6;
+      [1, 14].forEach((ex, i) => {
+        ctx.save(); ctx.translate(ex + look, -61); ctx.rotate(i ? -.18 : .18);
+        rr(-4, -eh / 2, 8, eh, 2.5); ctx.fill(); ctx.restore();
+      });
     }
     ctx.shadowBlur = 0;
-    ctx.fillStyle = 'rgba(255,122,154,' + (happy ? .9 : .55) + ')';
-    dot(-12, -48, 2.4); dot(12, -48, 2.4);
-
-    // лётные очки на лбу
-    ctx.strokeStyle = C.ink; ctx.lineWidth = 2.5; line(-22, -71, 22, -71);
-    [-8, 8].forEach(gx => {
-      ctx.fillStyle = GOLD; dot(gx, -72, 6.5);
-      ctx.fillStyle = '#FFF1C7'; dot(gx, -72, 4);
-      ctx.fillStyle = '#fff'; dot(gx - 1.6, -73.6, 1.3);
-    });
-    ctx.strokeStyle = C.ink; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.arc(-8, -72, 6.5, 0, Math.PI * 2); ctx.stroke(); ctx.beginPath(); ctx.arc(8, -72, 6.5, 0, Math.PI * 2); ctx.stroke();
+    // отблеск на визоре
+    ctx.fillStyle = 'rgba(255,255,255,.14)';
+    ctx.beginPath(); ctx.moveTo(-9, -69); ctx.lineTo(2, -69); ctx.lineTo(-4, -53); ctx.lineTo(-8, -53); ctx.fill();
 
     // антенна с зелёной лампочкой, как на сайте
-    ctx.strokeStyle = C.fig; ctx.lineWidth = 3;
-    // пригнувшись, антенна прижимается к голове
-    const [ax, ay] = duck ? [16, -80] : [8, -91];
-    ctx.beginPath(); ctx.moveTo(2, -78); ctx.quadraticCurveTo(duck ? 8 : 2, duck ? -80 : -86, ax - 1, ay + 2); ctx.stroke();
+    ctx.strokeStyle = C.ink; ctx.lineWidth = 2.5;
+    const [ax, ay] = duck ? [-14, -86] : [-12, -94];
+    line(-12, -81, ax, ay + 3);
     const pulse = .5 + Math.sin(t * 5) * .5;
-    ctx.fillStyle = 'rgba(124,242,156,' + (.28 * pulse) + ')'; dot(ax, ay, 8);
-    ctx.fillStyle = hurt ? RED : LIVE; dot(ax, ay, 4);
+    ctx.fillStyle = 'rgba(124,242,156,' + (.28 * pulse) + ')'; dot(ax, ay, 7);
+    ctx.fillStyle = hurt ? RED : LIVE; dot(ax, ay, 3.5);
     ctx.restore();
 
     // щит evals
