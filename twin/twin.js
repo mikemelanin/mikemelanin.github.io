@@ -147,6 +147,7 @@
     busy = true;
     form.classList.add('is-busy');
     chips.innerHTML = '';
+    root.classList.add('is-used');
     add('me', `<p>${esc(question)}</p>`);
     const dots = add('bot', '<span class="tw-dots" aria-label="Двойник печатает"><i></i><i></i><i></i></span>');
     const think = wait(still ? 0 : 500 + Math.random() * 500);
