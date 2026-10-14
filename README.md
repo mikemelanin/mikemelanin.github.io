@@ -4,8 +4,8 @@
 
 ## Project Map
 
-- `index.html` + `img/` - главная https://mikemelanin.github.io/: герой, конструктор, игра, AI-двойник и контакты.
-- `experience.html` - опыт и кейсы: подход, проекты, карьера, навыки.
+- `index.html` + `img/` - главная https://mikemelanin.github.io/: герой, подход с анимациями, конструктор, игра, AI-двойник и контакты.
+- `experience.html` - опыт (таймлайн и места работы), ключевые проекты, навыки.
 - `css/site.css`, `js/site.js` - общие стили и скрипт обеих страниц.
 - `game/game.js` - мини-игра: развилки, шкалы и концовки в `STAGES`, `ENDS`, `RANKS`.
 - `cv/index.html` - HTML-версия CV для печати.

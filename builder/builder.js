@@ -146,7 +146,7 @@
       <div class="bld-stat"><span>Сложность</span><strong>${LEVELS[level]}</strong><i class="bld-meter" style="--v:${level}" aria-hidden="true"></i></div>`;
 
     const lists = `
-      <div class="bld-list"><h3>Команда</h3><ul>${team.map(t => `<li>${t}</li>`).join('')}</ul></div>
+      <div class="bld-list bld-team"><h3>Команда</h3><ul>${team.map(t => `<li>${t}</li>`).join('')}</ul></div>
       <div class="bld-list"><h3>Метрики эффекта</h3><ul>${u.kpi.map(t => `<li>${t}</li>`).join('')}</ul></div>
       <div class="bld-list bld-risks"><h3>Главные риски</h3><ul>${risks.map(t => `<li>${t}</li>`).join('')}</ul></div>`;
 
