@@ -6,6 +6,7 @@
 
 - `index.html` + `img/` - лендинг, главная страница https://mikemelanin.github.io/.
 - `cv/index.html` - HTML-версия CV для печати.
+- `builder/builder.js` - конструктор AI-архитектуры: варианты, сроки, риски и метрики в `DATA`.
 - `twin/` - AI-двойник: `kb.js` база ответов (правится руками), `twin.js` чат. Для LLM вписать адрес бэкенда в `ENDPOINT` в `twin.js`.
 - `cv/img/` - изображения для HTML-версии.
 - `.gitignore` - правила исключения локальных файлов.
