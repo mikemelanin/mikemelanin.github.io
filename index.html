@@ -146,6 +146,26 @@
     display: flex; align-items: center; gap: 10px;
     font-size: 14px; font-weight: 500; line-height: 1.3;
   }
+  .portrait-talk {
+    position: absolute; left: 16px; right: 16px; bottom: 56px; z-index: 2;
+    display: block; padding: 12px 16px; border-radius: 18px 18px 18px 4px;
+    background: #fff; color: var(--ink-fixed, #0A0C26); text-decoration: none;
+    font-size: 15px; font-weight: 500; line-height: 1.35;
+    box-shadow: 0 16px 40px -16px rgba(0,0,0,.55);
+    opacity: 0; transform: translateY(10px) scale(.96); transform-origin: 0 100%;
+    transition: opacity .35s, transform .45s cubic-bezier(.3,1.5,.5,1);
+  }
+  .portrait-talk.is-on { opacity: 1; transform: none; }
+  .portrait-talk:hover { transform: translateY(-2px); }
+  .portrait-talk svg { display: inline-block; width: 16px; height: 16px; margin-left: 6px; vertical-align: -3px; color: var(--blue); transition: transform .2s; }
+  .portrait-talk:hover svg { transform: translateX(3px); }
+  .pt-text { display: none; }
+  .portrait-talk.is-said .pt-text { display: inline; }
+  .portrait-talk.is-said .pt-dots { display: none; }
+  .pt-dots { display: inline-flex; gap: 5px; padding: 5px 0; }
+  .pt-dots i { width: 7px; height: 7px; border-radius: 50%; background: #9aa0c0; animation: tw-dot 1s ease-in-out infinite; }
+  .pt-dots i:nth-child(2) { animation-delay: .15s; }
+  .pt-dots i:nth-child(3) { animation-delay: .3s; }
   .live-dot { width: 10px; height: 10px; border-radius: 50%; background: #7CF29C; box-shadow: 0 0 0 4px rgba(124,242,156,.25); flex: none; }
 
   /* ---------- marquee ---------- */
@@ -374,58 +394,28 @@
   .big-note { font: 700 clamp(22px, 2.4vw, 30px)/1.2 var(--display); letter-spacing: -.03em; color: var(--ink); margin-bottom: 10px; }
 
   /* ---------- final CTA ---------- */
-  .final { padding: clamp(80px, 11vw, 160px) 0 0; }
-  .final h2 { font-size: clamp(34px, 7.6vw, 104px); line-height: .96; letter-spacing: -.05em; font-weight: 800; }
-  .final h2 span { display: block; white-space: nowrap; }
+  .final { padding: clamp(72px, 9vw, 120px) 0 0; }
+  .final h2 { font-size: clamp(34px, 5vw, 72px); line-height: .98; letter-spacing: -.05em; font-weight: 800; margin-bottom: 28px; }
+  .final h2 span { display: block; }
   .final .lede { margin-top: 28px; }
-  .ask { margin-top: clamp(28px, 4vw, 44px); max-width: 760px; }
-  .ask-label { display: block; font-size: 16px; color: var(--on-blue-soft); margin-bottom: 12px; }
-  .ask-box {
-    display: flex; align-items: flex-end; gap: 8px; padding: 8px 8px 8px 24px;
-    border-radius: 32px; background: rgba(255,255,255,.12); box-shadow: inset 0 0 0 1.5px var(--on-blue-line);
-    transition: box-shadow .2s, background-color .2s;
-  }
-  .ask-box:focus-within { box-shadow: inset 0 0 0 1.5px #fff; background: rgba(255,255,255,.18); }
-  .ask-box textarea {
-    flex: 1; min-width: 0; border: 0; background: none; outline: none; color: #fff; resize: none;
-    font: 500 clamp(17px, 1.6vw, 20px)/1.35 var(--text); padding: 13px 0; height: 53px; min-height: 53px; max-height: 190px; scrollbar-width: none;
-  }
-  .ask-box textarea::placeholder { color: rgba(255,255,255,.62); }
-
-  /* voice */
-  .voice[hidden] { display: none; }
-  .voice { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 26px; align-items: center; margin-bottom: 28px; }
-  .mic {
-    position: relative; width: 104px; height: 104px; border-radius: 50%; border: 0; cursor: pointer;
-    background: #fff; color: var(--blue); display: grid; place-items: center;
-    transition: transform .25s cubic-bezier(.3,1.6,.5,1), background-color .25s, color .25s;
-  }
-  .mic:hover { transform: scale(1.06); }
-  .mic:active { transform: scale(.96); }
-  .mic svg { width: 40px; height: 40px; position: relative; z-index: 1; }
-  .mic .i-stop { display: none; }
-  .mic-ring { position: absolute; inset: 0; border-radius: 50%; border: 2px solid #fff; opacity: 0; animation: ring 2.6s cubic-bezier(.2,.6,.3,1) infinite; }
-  .mic-ring + .mic-ring { animation-delay: 1.3s; }
   @keyframes ring { 0% { transform: scale(1); opacity: .7; } 100% { transform: scale(1.75); opacity: 0; } }
-  .voice.is-rec .mic { background: #FF4D4D; color: #fff; }
-  .voice.is-rec .mic .i-mic { display: none; }
-  .voice.is-rec .mic .i-stop { display: block; }
-  .voice.is-rec .mic-ring { border-color: #FF4D4D; animation-duration: 1.2s; }
-  .voice-title { font: 700 clamp(22px, 2.4vw, 30px)/1.15 var(--display); letter-spacing: -.03em; }
-  .voice-sub { margin-top: 6px; font-size: 16px; line-height: 1.45; color: var(--on-blue-soft); max-width: 30em; }
-  .bars { display: flex; align-items: center; gap: 4px; height: 34px; margin-top: 12px; }
-  .bars i { width: 4px; height: 6px; border-radius: 4px; background: rgba(255,255,255,.4); transition: height .12s; }
-  .voice.is-idle .bars i { animation: idle 2.4s ease-in-out infinite; animation-delay: calc(var(--k) * 70ms); }
-  @keyframes idle { 0%, 100% { height: 6px; } 50% { height: 14px; } }
-  .voice.is-rec .bars i { background: #fff; }
-  .ask-hint { margin-top: 14px; font-size: 15px; color: var(--on-blue-soft); }
-  .contact-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: clamp(48px, 6vw, 80px); border-top: 1px solid var(--on-blue-line); }
+  .final-grid {
+    display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 620px);
+    grid-template-areas: "copy chat" "list chat"; grid-template-rows: auto 1fr;
+    gap: 0 clamp(32px, 5vw, 80px); margin-bottom: clamp(56px, 7vw, 96px);
+  }
+  .final-copy { grid-area: copy; }
+  .final-lead { font-size: clamp(18px, 1.6vw, 21px); color: var(--on-blue-soft); max-width: 30em; }
+  .final .twin-eyebrow { color: #fff; }
+  .final .twin-chat { grid-area: chat; box-shadow: 0 40px 90px -40px rgba(4,8,60,.7); }
+  .contact-list { grid-area: list; align-self: end; display: grid; grid-template-columns: 1fr; margin-top: 40px; border-top: 1px solid var(--on-blue-line); }
   .contact-list a {
-    display: block; text-decoration: none; padding: 28px 24px 28px 0;
+    text-decoration: none; padding: 22px 0;
     transition: opacity .2s;
   }
-  .contact-list a + a { padding-left: 24px; border-left: 1px solid var(--on-blue-line); }
-  .contact-list span { display: block; font-size: 14px; color: var(--on-blue-soft); margin-bottom: 8px; }
+  .contact-list a { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; }
+  .contact-list a + a { border-top: 1px solid var(--on-blue-line); }
+  .contact-list span { display: block; font-size: 14px; color: var(--on-blue-soft); }
   .contact-list strong { font: 700 clamp(17px, 1.7vw, 23px)/1.2 var(--display); letter-spacing: -.03em; overflow-wrap: anywhere; }
   .contact-list a:hover strong { text-decoration: underline; text-underline-offset: 6px; text-decoration-thickness: 2px; }
   .footer { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding: 26px 0 32px; border-top: 1px solid var(--on-blue-line); font-size: 14px; color: var(--on-blue-soft); }
@@ -540,13 +530,10 @@
   .tl-years { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; padding-right: 7.7%; }
 
   /* ---------- AI twin ---------- */
-  .twin-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 640px); gap: 32px clamp(32px, 5vw, 80px); align-items: center; }
   .twin-eyebrow { display: inline-flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 500; color: var(--muted); margin-bottom: 20px; }
   .twin-eyebrow .live-dot { animation: live 1.6s ease-in-out infinite; }
-  .twin-copy h2 { margin-bottom: 24px; }
-  .twin-copy p:last-child { color: var(--muted); max-width: 30em; }
   .twin-chat {
-    display: flex; flex-direction: column; height: min(640px, 82svh);
+    display: flex; flex-direction: column; height: min(620px, 82svh); color: var(--ink);
     background: var(--card); border: 1px solid var(--line); border-radius: 28px; overflow: hidden;
     box-shadow: 0 30px 80px -40px rgba(36,51,242,.45);
   }
@@ -587,6 +574,7 @@
     font: inherit; font-size: 16px; line-height: 1.5; padding: 10px 0; max-height: 120px; outline: none;
   }
   .chat-form textarea::placeholder { color: var(--muted); }
+  .chat-form textarea:placeholder-shown { white-space: nowrap; overflow: hidden; }
   .chat-form button {
     flex: none; width: 44px; height: 44px; border-radius: 50%; border: 0; cursor: pointer;
     background: var(--blue); color: #fff; display: grid; place-items: center; transition: transform .15s, opacity .15s;
@@ -594,8 +582,14 @@
   .chat-form button:hover { transform: translateY(-2px); }
   .chat-form button svg { width: 20px; height: 20px; }
   .chat-form.is-busy button { opacity: .4; pointer-events: none; }
+  .chat-form .chat-mic { position: relative; background: var(--chip); color: var(--figure); }
+  .chat-mic[hidden] { display: none; }
+  .chat-mic .i-stop { display: none; }
+  .chat-mic.is-rec { background: #FF4D4D; color: #fff; }
+  .chat-mic.is-rec .i-mic { display: none; }
+  .chat-mic.is-rec .i-stop { display: block; }
+  .chat-mic.is-rec::before { content: ''; position: absolute; inset: 0; border-radius: 50%; border: 2px solid #FF4D4D; animation: ring 1.2s cubic-bezier(.2,.6,.3,1) infinite; }
   @media (max-width: 860px) {
-    .twin-grid { grid-template-columns: 1fr; }
     .twin-chat { height: min(600px, 78svh); }
     .chat-chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
     .chat-chips::-webkit-scrollbar { display: none; }
@@ -660,6 +654,7 @@
     .hero-grid { grid-template-columns: 1fr; padding-top: 12px; }
     .portrait { grid-column: 1; grid-row: 1; max-width: 230px; margin-bottom: 28px; }
     .portrait-tag { left: 12px; right: 12px; bottom: 12px; font-size: 13px; gap: 8px; }
+    .portrait-talk { left: 10px; right: 10px; bottom: 62px; padding: 9px 12px; font-size: 13px; }
     .hero h1 { grid-row: 2; }
     .hero-text { grid-row: 3; }
     .portrait-frame { aspect-ratio: 1 / 1; border-radius: 150px 150px 16px 16px; }
@@ -668,8 +663,8 @@
     .sec-head, .panel, .case { grid-template-columns: 1fr; }
     .stack, .more { grid-template-columns: 1fr; }
     .tl-preview { grid-template-columns: 1fr; margin-top: -16px; min-height: 0; }
-    .contact-list { grid-template-columns: 1fr; }
-    .contact-list a + a { padding-left: 0; border-left: 0; border-top: 1px solid var(--on-blue-line); }
+    .final-grid { grid-template-columns: 1fr; grid-template-areas: "copy" "chat" "list"; grid-template-rows: none; row-gap: 28px; }
+    .contact-list { margin-top: 12px; }
   }
   @media (max-width: 560px) {
     body { font-size: 17px; }
@@ -687,16 +682,6 @@
     .toggle { grid-column: 2; grid-row: 1 / span 3; }
     .job-body > div { grid-column: 1 / span 2; }
     .figure { font-size: 64px; }
-    .final h2 span { white-space: normal; }
-    .ask-box { flex-direction: column; align-items: stretch; border-radius: 24px; padding: 8px; }
-    .ask-box textarea { flex: none; padding: 12px 14px; min-height: 78px; }
-    .voice { gap: 18px; }
-    .mic { width: 80px; height: 80px; }
-    .mic svg { width: 32px; height: 32px; }
-    .bars { gap: 3px; }
-    .bars i:nth-child(n+22) { display: none; }
-    .ask-box .btn { justify-content: center; }
-    .ask-box .btn span { display: inline; }
     .tl-preview { min-height: 330px; align-content: start; }
     .tl-preview li:nth-child(n+2) { display: none; }
   }
@@ -717,8 +702,7 @@
       <li><a href="#approach">Подход</a></li>
       <li><a href="#results">Результаты</a></li>
       <li><a href="#experience">Опыт</a></li>
-      <li><a href="#twin">AI-двойник</a></li>
-      <li><a href="#contact">Контакты</a></li>
+      <li><a href="#contact">AI-двойник</a></li>
     </ul>
     <div class="nav-actions">
       <a class="btn btn-ghost" href="cv/Mikhail-Melanin-CV.pdf" download="Михаил Меланьин – CV.pdf"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg><span>Скачать CV</span></a>
@@ -742,6 +726,10 @@
     <div class="portrait">
       <div class="portrait-frame">
         <img src="img/photo.jpg" alt="Михаил Меланьин" width="800" height="800">
+        <a class="portrait-talk" href="#contact" aria-label="Поговорить с AI-двойником">
+          <span class="pt-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+          <span class="pt-text">Привет! Я AI-двойник Михаила. Спросите меня о чём угодно<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+        </a>
         <div class="portrait-tag"><span class="live-dot" aria-hidden="true"></span>Москва. Открыт к новым проектам</div>
       </div>
     </div>
@@ -772,8 +760,7 @@
       <li><a href="#approach" tabindex="-1">Подход</a></li>
       <li><a href="#results" tabindex="-1">Результаты</a></li>
       <li><a href="#experience" tabindex="-1">Опыт</a></li>
-      <li><a href="#twin" tabindex="-1">AI-двойник</a></li>
-      <li><a href="#contact" tabindex="-1">Контакты</a></li>
+      <li><a href="#contact" tabindex="-1">AI-двойник</a></li>
     </ul>
     <div class="nav-actions">
       <a class="btn btn-line" href="cv/Mikhail-Melanin-CV.pdf" download="Михаил Меланьин – CV.pdf" tabindex="-1"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg><span>Скачать CV</span></a>
@@ -1119,15 +1106,17 @@
       </div>
     </div>
   </section>
+</main>
 
-  <section id="twin" class="twin">
-    <div class="wrap twin-grid">
-      <div class="twin-copy">
-        <p class="twin-eyebrow"><span class="live-dot" aria-hidden="true"></span>Онлайн 24/7</p>
-        <h2>Спросите моего AI&#8209;двойника</h2>
-        <p>Он знает мой опыт, проекты и подход к внедрению AI. Отвечает сразу, в любое время суток. Если вопрос нестандартный, честно скажет и передаст его настоящему мне.</p>
+<footer class="final blue" id="contact">
+  <div class="wrap">
+    <div class="final-grid">
+      <div class="final-copy">
+        <h2><span>Есть AI&#8209;задача?</span> <span>Давайте обсудим</span></h2>
+        <p class="twin-eyebrow"><span class="live-dot" aria-hidden="true"></span>AI-двойник онлайн 24/7</p>
+        <p class="final-lead">Расскажите о задаче или спросите про мой опыт, голосом или текстом. Двойник ответит сразу, а если нужен я сам, передаст сообщение в Telegram.</p>
       </div>
-      <div class="twin-chat" role="region" aria-label="Чат с AI-двойником">
+      <div class="twin-chat" id="twin" role="region" aria-label="Чат с AI-двойником">
         <div class="chat-head">
           <img src="img/photo.jpg" alt="" width="44" height="44">
           <div><strong>Михаил Меланьин</strong><span>AI-двойник</span></div>
@@ -1138,40 +1127,18 @@
         <form class="chat-form">
           <label class="sr-only" for="twin-input">Вопрос двойнику</label>
           <textarea id="twin-input" rows="1" autocomplete="off" placeholder="Спросите о чём угодно"></textarea>
+          <button type="button" class="chat-mic" aria-label="Сказать голосом" hidden>
+            <svg class="i-mic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="9" y="2.5" width="6" height="12" rx="3" fill="currentColor"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg>
+            <svg class="i-stop" viewBox="0 0 24 24" aria-hidden="true"><rect x="6.5" y="6.5" width="11" height="11" rx="2.5" fill="currentColor"/></svg>
+          </button>
           <button type="submit" aria-label="Спросить"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button>
         </form>
       </div>
-    </div>
-  </section>
-</main>
-
-<footer class="final blue" id="contact">
-  <div class="wrap">
-    <h2><span>Есть AI-задача?</span> <span>Давайте обсудим</span></h2>
-    <form class="ask" action="https://t.me/mike_melanin" target="_blank">
-      <div class="voice is-idle" hidden>
-        <button type="button" class="mic" aria-label="Рассказать голосом">
-          <span class="mic-ring" aria-hidden="true"></span><span class="mic-ring" aria-hidden="true"></span>
-          <svg class="i-mic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="9" y="2.5" width="6" height="12" rx="3" fill="currentColor"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg>
-          <svg class="i-stop" viewBox="0 0 24 24" aria-hidden="true"><rect x="6.5" y="6.5" width="11" height="11" rx="2.5" fill="currentColor"/></svg>
-        </button>
-        <div aria-live="polite">
-          <p class="voice-title">Расскажите голосом</p>
-          <p class="voice-sub">Нажмите на микрофон и опишите задачу. Или просто скажите привет.</p>
-          <div class="bars" aria-hidden="true"></div>
-        </div>
+      <div class="contact-list">
+        <a href="https://t.me/mike_melanin"><span>Telegram</span><strong>@mike_melanin</strong></a>
+        <a href="mailto:m.v.melanin@gmail.com"><span>Почта</span><strong>m.v.melanin@gmail.com</strong></a>
+        <a href="tel:+79251164669"><span>Телефон</span><strong>+7 925 116-46-69</strong></a>
       </div>
-      <label class="ask-label" for="ask-input">Или напишите в паре слов</label>
-      <div class="ask-box">
-        <textarea id="ask-input" name="q" rows="1" autocomplete="off" placeholder="Например, агент поддержки для банка"></textarea>
-        <button class="btn btn-solid" type="submit"><svg aria-hidden="true" viewBox="0 0 24 24" fill="currentColor"><path d="M21.9 4.3 18.7 19.5c-.2 1-.9 1.3-1.7.8l-4.8-3.5-2.3 2.2c-.3.3-.5.5-1 .5l.3-4.9 8.9-8c.4-.3-.1-.5-.6-.2l-11 6.9-4.7-1.5c-1-.3-1-1 .2-1.5L20.5 3c.9-.3 1.6.2 1.4 1.3Z"/></svg><span>Отправить</span></button>
-      </div>
-      <p class="ask-hint" aria-live="polite">Сообщение откроется в Telegram, там ответ быстрее всего.</p>
-    </form>
-    <div class="contact-list">
-      <a href="https://t.me/mike_melanin"><span>Telegram</span><strong>@mike_melanin</strong></a>
-      <a href="mailto:m.v.melanin@gmail.com"><span>Почта</span><strong>m.v.melanin@gmail.com</strong></a>
-      <a href="tel:+79251164669"><span>Телефон</span><strong>+7 925 116-46-69</strong></a>
     </div>
     <div class="footer">
       <span>© 2026 Михаил Меланьин</span>
@@ -1295,111 +1262,15 @@
       }, { threshold: .6 });
     });
 
-    // ask box: typing placeholder, voice input, send to Telegram
-    const ask = document.querySelector('.ask');
-    if (ask) {
-      const input = ask.querySelector('textarea'), hint = ask.querySelector('.ask-hint');
-      const fit = () => { input.style.height = 'auto'; input.style.height = Math.min(190, input.scrollHeight) + 'px'; };
-      input.addEventListener('input', fit);
-      input.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); ask.requestSubmit ? ask.requestSubmit() : ask.dispatchEvent(new Event('submit')); } });
-      const IDEAS = [
-        'Агент поддержки для банка',
-        'RAG по внутренним регламентам',
-        'Речевая аналитика колл-центра',
-        'AI-платформа в закрытом контуре',
-        'Посчитать ROI AI-пилота'
-      ];
-      const PH = 'Например, агент поддержки для банка';
-      if (!still) {
-        let n = 0, k = 0, back = false, visible = false;
-        onView(ask, v => visible = v, { threshold: 0 });
-        const step = () => {
-          let delay = back ? 28 : 60;
-          if (visible && !input.value && document.activeElement !== input) {
-            const s = IDEAS[n];
-            k += back ? -1 : 1;
-            input.placeholder = s.slice(0, k) + (k < s.length || back ? '|' : '');
-            if (k >= s.length && !back) { back = true; delay = 1700; }
-            else if (k <= 0 && back) { back = false; n = (n + 1) % IDEAS.length; delay = 350; }
-          } else if (document.activeElement === input) {
-            input.placeholder = PH;
-          }
-          setTimeout(step, delay);
-        };
-        step();
-      }
-
-      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-      const voice = ask.querySelector('.voice');
-      if (voice) {
-        voice.hidden = false;
-        const mic = voice.querySelector('.mic'), title = voice.querySelector('.voice-title'), sub = voice.querySelector('.voice-sub');
-        const bars = voice.querySelector('.bars');
-        bars.innerHTML = Array.from({ length: 28 }, (_, k) => '<i style="--k:' + k + '"></i>').join('');
-        const B = [...bars.children];
-        const say = (a, b) => { title.textContent = a; sub.textContent = b; };
-        let rec = null, on = false, base = '', t0 = 0, clock = null, wave = null, level = .2;
-        const stopUi = () => {
-          on = false;
-          voice.classList.remove('is-rec');
-          voice.classList.add('is-idle');
-          mic.setAttribute('aria-label', 'Рассказать голосом');
-          clearInterval(clock); clearInterval(wave);
-          B.forEach(b => b.style.height = '');
-        };
-        const startUi = () => {
-          on = true; t0 = Date.now();
-          voice.classList.add('is-rec');
-          voice.classList.remove('is-idle');
-          mic.setAttribute('aria-label', 'Закончить запись');
-          const tick = () => { const s = Math.floor((Date.now() - t0) / 1000); say('Слушаю, 0:' + String(s).padStart(2, '0'), 'Говорите. Нажмите ещё раз, когда закончите.'); };
-          tick(); clock = setInterval(tick, 500);
-          wave = setInterval(() => {
-            level = Math.max(.15, level * .82);
-            B.forEach((b, k) => b.style.height = (6 + Math.random() * 28 * level * (1 - Math.abs(k - 13.5) / 18)) + 'px');
-          }, 90);
-        };
-        mic.addEventListener('click', () => {
-          if (!SR) return say('Здесь голос не сработает', 'Этот браузер не умеет распознавать речь. Напишите текстом ниже или откройте сайт в Chrome или Safari.');
-          if (on) { rec && rec.stop(); return; }
-          rec = new SR();
-          rec.lang = 'ru-RU'; rec.interimResults = true; rec.continuous = true;
-          base = input.value ? input.value.trim() + ' ' : '';
-          let got = false;
-          rec.onresult = e => {
-            let txt = '';
-            for (let i = 0; i < e.results.length; i++) txt += e.results[i][0].transcript;
-            input.value = base + txt.trim();
-            fit();
-            got = true; level = 1;
-          };
-          rec.onerror = e => {
-            stopUi();
-            if (e.error === 'not-allowed' || e.error === 'service-not-allowed') say('Нет доступа к микрофону', 'Разрешите микрофон в настройках браузера или напишите текстом ниже.');
-            else if (e.error === 'no-speech') say('Ничего не слышно', 'Нажмите на микрофон и попробуйте ещё раз.');
-            else say('Не получилось распознать', 'Попробуйте ещё раз или напишите текстом ниже.');
-            rec = null;
-          };
-          rec.onend = () => {
-            if (!rec) return;
-            stopUi();
-            if (got) { say('Готово, проверьте текст', 'Поправьте, если нужно, и нажмите Отправить.'); hint.textContent = 'Сообщение откроется в Telegram, там ответ быстрее всего.'; }
-            else say('Расскажите голосом', 'Нажмите на микрофон и опишите задачу. Или просто скажите привет.');
-            rec = null;
-          };
-          try { rec.start(); startUi(); } catch (err) { rec = null; say('Не получилось включить микрофон', 'Напишите текстом ниже.'); }
-        });
-      }
-
-      ask.addEventListener('submit', e => {
+    // hero: speech bubble on the portrait leads to the AI twin
+    const talk = document.querySelector('.portrait-talk');
+    if (talk) {
+      const say = () => { talk.classList.add('is-on'); setTimeout(() => talk.classList.add('is-said'), still ? 0 : 1200); };
+      setTimeout(say, still ? 0 : 2600);
+      talk.addEventListener('click', e => {
         e.preventDefault();
-        const text = input.value.trim();
-        window.open('https://t.me/mike_melanin' + (text ? '?text=' + encodeURIComponent(text) : ''), '_blank', 'noopener');
-        if (text && navigator.clipboard) {
-          navigator.clipboard.writeText(text).then(() => {
-            hint.textContent = 'Текст скопирован. Если он не подставился в чат, просто вставьте его.';
-          }, () => {});
-        }
+        document.querySelector('#twin').scrollIntoView({ behavior: still ? 'auto' : 'smooth', block: 'center' });
+        setTimeout(() => document.querySelector('#twin-input').focus({ preventScroll: true }), still ? 0 : 900);
       });
     }
 

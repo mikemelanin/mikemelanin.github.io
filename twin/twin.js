@@ -31,6 +31,12 @@
   };
   const keys = KB.entries.map(e => e.keys.map(k => norm(k).split(' ').filter(Boolean)));
 
+  const taskKeys = KB.taskWords.map(k => norm(k).split(' '));
+  const isTask = text => {
+    const words = norm(text).split(' ').filter(Boolean);
+    return words.length >= 3 && !words.includes('ли') && taskKeys.some(parts => parts.every(p => words.includes(p)));
+  };
+
   const match = text => {
     const words = norm(text).split(' ').filter(Boolean);
     if (!words.length) return null;
@@ -127,8 +133,9 @@
     const think = wait(still ? 0 : 500 + Math.random() * 500);
 
     const fromLLM = entry ? null : await remote(question);
-    const hitEntry = entry || (fromLLM ? null : match(question));
-    const text = fromLLM || (hitEntry ? hitEntry.a : KB.fallback);
+    const task = !entry && !fromLLM && isTask(question);
+    const hitEntry = task ? null : entry || (fromLLM ? null : match(question));
+    const text = fromLLM || (task ? KB.task : hitEntry ? hitEntry.a : KB.fallback);
     await think;
 
     dots.innerHTML = md(text);
@@ -138,7 +145,7 @@
     scrollDown();
 
     history.push({ role: 'user', content: question }, { role: 'assistant', content: text });
-    showChips(hitEntry ? hitEntry.next || KB.start : KB.start.filter(id => id !== 'about'));
+    showChips(task ? ['approach', 'cost', 'case'] : hitEntry ? hitEntry.next || KB.start : KB.start.filter(id => id !== 'about'));
     scrollDown();
     busy = false;
     form.classList.remove('is-busy');
@@ -159,6 +166,62 @@
   input.addEventListener('keydown', e => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); form.requestSubmit(); }
   });
+
+  // ---------- voice ----------
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const mic = form.querySelector('.chat-mic');
+  if (SR && mic) {
+    mic.hidden = false;
+    let rec = null;
+    const PH = input.placeholder;
+    const stop = () => { mic.classList.remove('is-rec'); mic.setAttribute('aria-label', 'Сказать голосом'); input.placeholder = PH; rec = null; };
+    mic.addEventListener('click', () => {
+      if (rec) { rec.stop(); return; }
+      if (busy) return;
+      rec = new SR();
+      rec.lang = 'ru-RU'; rec.interimResults = true; rec.continuous = false;
+      let text = '';
+      rec.onresult = e => {
+        text = [...e.results].map(r => r[0].transcript).join('').trim();
+        input.value = text;
+      };
+      rec.onerror = e => {
+        stop();
+        if (e.error === 'not-allowed' || e.error === 'service-not-allowed') input.placeholder = 'Нет доступа к микрофону, напишите текстом';
+      };
+      rec.onend = () => {
+        const r = rec; stop();
+        if (r && text) { input.value = ''; ask(text); }
+      };
+      try {
+        rec.start();
+        mic.classList.add('is-rec');
+        mic.setAttribute('aria-label', 'Закончить запись');
+        input.value = '';
+        input.placeholder = 'Слушаю…';
+      } catch { stop(); }
+    });
+  }
+
+  // подсказки печатаются в пустом поле, пока человек не начал вводить
+  if (!still && KB.ideas) {
+    const PH = input.placeholder;
+    let n = 0, k = 0, back = false, seen = false;
+    if ('IntersectionObserver' in window) new IntersectionObserver(([e]) => seen = e.isIntersecting).observe(root);
+    const step = () => {
+      let delay = back ? 28 : 60;
+      const idle = !input.value && document.activeElement !== input && !(mic && mic.classList.contains('is-rec'));
+      if (seen && idle) {
+        const s = KB.ideas[n];
+        k += back ? -1 : 1;
+        input.placeholder = s.slice(0, k) + '|';
+        if (k >= s.length && !back) { back = true; delay = 1800; }
+        else if (k <= 0 && back) { back = false; n = (n + 1) % KB.ideas.length; delay = 400; }
+      } else if (document.activeElement === input && input.placeholder !== PH) input.placeholder = PH;
+      setTimeout(step, delay);
+    };
+    step();
+  }
 
   // старт: приветствие появляется, когда чат попадает в экран
   let started = false;
