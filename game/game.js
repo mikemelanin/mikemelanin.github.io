@@ -37,8 +37,8 @@
     ib: { label: 'ИБ', w: 30, h: 62 },
     legacy: { label: 'Legacy', w: 50, h: 46 },
     committee: { label: 'Комитет', w: 78, h: 50 },
-    ghost: { label: 'Галлюцинация', w: 40, h: 40, air: 48, bob: 1 },
-    feature: { label: '+1 фича', w: 46, h: 24, air: 52, bob: 1, fly: 70 }
+    ghost: { label: 'Галлюцинация', w: 40, h: 40, air: 38, bob: 1 },
+    feature: { label: '+1 фича', w: 46, h: 24, air: 38, bob: 1, fly: 70 }
   };
   const ENDS = {
     paper: ['Утонули в согласованиях', 'Одно решение – один владелец и срок. Согласования собирайте параллельно, а не по очереди.'],
@@ -348,8 +348,8 @@
     }
 
     // препятствия
-    const ph = p.duck ? (p.y < 4 ? 34 : 40) : 60;
-    const pl = px - 20, pr = px + 20, pb = p.y, pt = p.y + ph;
+    const ph = p.duck ? (p.y < 4 ? 24 : 28) : 50;
+    const pl = px - 24, pr = px + 24, pb = p.y, pt = p.y + ph;
     for (const o of obs) {
       if (o.fly) o.x -= o.fly * dt;
       if (o.hit) { o.kx += o.kvx * dt; o.kh += o.kvh * dt; o.kvh -= 1500 * dt; o.kr += 7 * dt; continue; }
@@ -606,47 +606,71 @@
     }
   };
 
-  // герой: синий пиксельный краб – квадратное тело, два глаза, ручки по бокам, четыре ножки
-  const PX = 6, COLS = 11, ROWS = 9;
+  // герой: синий пиксельный краб в пропорциях стандартного – тело шире высоты, ручки торчат в стороны,
+  // глаза-точки, четыре коротких ножки. Пиксель вдвое выше ширины, как символ в терминале.
+  const PW = 4.4, PH = 8.8;
   const drawBot = () => {
     const h = p.y, x = px, air = h > 0;
     const duck = p.duck && state === 'run';
     const hurt = state === 'over' || (state === 'run' && inv > 1.1);
     const happy = state === 'win' || state === 'finish';
     const moving = state === 'run' || state === 'finish';
+    const run = moving && !air && !duck;
     // тень
     ctx.fillStyle = C.ink; ctx.globalAlpha = .13 * Math.max(.3, 1 - h / 200);
-    ctx.beginPath(); ctx.ellipse(x, GY + 3, 28 * Math.max(.5, 1 - h / 300), 4, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(x, GY + 3, 34 * Math.max(.5, 1 - h / 300), 4, 0, 0, Math.PI * 2); ctx.fill();
+    // пыль из-под ножек
+    if (run && !still) {
+      ctx.fillStyle = C.muted;
+      for (let i = 0; i < 3; i++) {
+        const k = (t * 2.2 + i / 3) % 1;
+        ctx.globalAlpha = .35 * (1 - k);
+        ctx.fillRect(x - 30 - k * 34, GY - 3 - k * 10 - (i % 2) * 4, 4, 4);
+      }
+    }
     ctx.globalAlpha = state === 'run' && inv > 0 && Math.floor(t * 14) % 2 ? .35 : 1;
     ctx.save();
     ctx.translate(x, GY - h);
-    if (duck) ctx.scale(1.1, .58);
+    if (duck) ctx.scale(1.12, .55);
     if (state === 'over') ctx.rotate(.14);
-    const bob = air ? 0 : moving && Math.sin(p.phase * 2) > 0 ? 2 : 0;
-    const top = -ROWS * PX, x0 = -COLS * PX / 2;
-    const cell = (c, r, w = 1, hh = 1) => ctx.fillRect(x0 + c * PX, top + r * PX - bob, w * PX + .5, hh * PX + .5);
+    // ход: четыре фазы, тело покачивается из стороны в сторону, как у краба на бегу
+    const ph4 = Math.floor(p.phase * 1.3) % 4;
+    const bob = run ? (ph4 % 2 ? PH * .25 : 0) : happy ? Math.abs(Math.sin(t * 7)) * 6 : (!moving && Math.sin(t * 2.4) > .7 ? 2 : 0);
+    const sway = run ? Math.sin(p.phase * 1.3 * Math.PI / 2) * 1.6 : 0;
+    const top = -5 * PH, x0 = -9 * PW + sway;
+    const cell = (c, r, w = 1, hh = 1, dy = 0) => ctx.fillRect(x0 + c * PW, top + r * PH - bob + dy, w * PW + .5, hh * PH + .5);
 
     ctx.fillStyle = C.blue;
-    // ножки: пары шагают по очереди, в прыжке поджаты
-    const step = moving && !air ? (Math.sin(p.phase) > 0 ? 0 : 1) : -1;
-    [1, 3, 7, 9].forEach((c, i) => {
-      const lift = air ? PX * .5 : i % 2 === step ? PX * .5 : 0;
-      ctx.fillRect(x0 + c * PX, top + 7 * PX - bob, PX + .5, 2 * PX + bob - lift + .5);
+    // ножки: пары переступают по очереди и чуть семенят вперёд-назад
+    [4, 6, 11, 13].forEach((c, i) => {
+      let lift = 0, dx = 0;
+      if (air) lift = PH * .45;
+      else if (run) { const up = (ph4 + i) % 4 === 0 || (ph4 + i) % 4 === 1; lift = up ? PH * .4 : 0; dx = up ? PW * .4 : -PW * .2; }
+      ctx.fillRect(x0 + c * PW + dx, top + 4 * PH - bob, PW + .5, PH + bob - lift + .5);
     });
-    // тело и ручки
-    cell(1, 0, 9, 7);
-    if (air || happy) { cell(0, 1, 1, 2); cell(10, 1, 1, 2); }
-    else { cell(0, 3, 1, 2); cell(10, 3, 1, 2); }
+    // тело
+    cell(3, 0, 12, 4);
+    // ручки: в прыжке и на финише вверх, на бегу щёлкают по очереди
+    const armUp = side => {
+      if (air || duck) return air;
+      if (happy) return Math.sin(t * 7 + side * Math.PI) > 0;
+      if (run) return Math.sin(t * 10 + side * Math.PI) > .55;
+      return !moving && side === 1 && Math.sin(t * 1.3) > .85;
+    };
+    [[1, 0], [15, 1]].forEach(([c, side]) => {
+      if (armUp(side)) { cell(c, 1, 2, 1); cell(side ? c + 1 : c, 0, 1, 1); }
+      else cell(c, 2, 2, 1);
+    });
     // глаза
     if (hurt) {
-      ctx.strokeStyle = RED; ctx.lineWidth = 2.6; ctx.lineCap = 'round';
-      [3, 7].forEach(c => {
-        const cx = x0 + (c + .5) * PX, cy = top + 3 * PX - bob;
-        line(cx - 4, cy - 4, cx + 4, cy + 4); line(cx + 4, cy - 4, cx - 4, cy + 4);
+      ctx.strokeStyle = RED; ctx.lineWidth = 2.4; ctx.lineCap = 'round';
+      [5, 12].forEach(c => {
+        const cx = x0 + (c + .5) * PW, cy = top + 1.5 * PH - bob;
+        line(cx - 3.5, cy - 3.5, cx + 3.5, cy + 3.5); line(cx + 3.5, cy - 3.5, cx - 3.5, cy + 3.5);
       });
     } else {
       ctx.fillStyle = SCREEN;
-      [3, 7].forEach(c => happy ? cell(c - .5, 2.5, 2, .5) : p.blink > 0 ? cell(c, 2.7, 1, .4) : cell(c, 2, 1, 2));
+      [5, 12].forEach(c => happy ? cell(c - .5, 1.2, 2, .25) : p.blink > 0 ? cell(c, 1.6, 1, .2) : cell(c, 1, 1, 1));
     }
     ctx.restore();
 
@@ -654,7 +678,7 @@
     if (shield) {
       ctx.globalAlpha = .5 + Math.sin(t * 6) * .2;
       ctx.strokeStyle = C.fig; ctx.lineWidth = 2.5;
-      ctx.beginPath(); ctx.arc(x, GY - h - 30, 46, 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath(); ctx.arc(x, GY - h - 24, 48, 0, Math.PI * 2); ctx.stroke();
       ctx.globalAlpha = .08; ctx.fillStyle = C.fig; ctx.fill();
     }
     ctx.globalAlpha = 1;
