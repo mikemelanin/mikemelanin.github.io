@@ -90,10 +90,19 @@
     win: () => [523, 659, 784, 1047, 1319].forEach((f, i) => beep(f, f, .2, 'square', .045, i * .11)),
     lose: () => [392, 330, 262].forEach((f, i) => beep(f, f * .97, .22, 'triangle', .06, i * .16))
   };
+  // музыка: играет только во время забега, файл грузится при первом запуске
+  let music = null;
+  const musicOn = () => {
+    if (muted) return;
+    if (!music) { music = new Audio('game/audio/theme.mp3'); music.loop = true; music.volume = .35; }
+    music.play().catch(() => {});
+  };
+  const musicOff = (rewind = false) => { if (!music) return; music.pause(); if (rewind) music.currentTime = 0; };
   soundBtn.addEventListener('click', () => {
     muted = !muted;
     soundBtn.setAttribute('aria-pressed', String(!muted));
     try { localStorage.setItem('mm-runner-muted', muted ? '1' : '0'); } catch {}
+    if (muted) musicOff(); else if (state === 'run') musicOn();
   });
 
   // ---------- size ----------
@@ -244,10 +253,11 @@
     root.focus({ preventScroll: true });
     const r = root.getBoundingClientRect();
     if (r.top < 70 || r.bottom > innerHeight) root.scrollIntoView({ block: 'center', behavior: still ? 'auto' : 'smooth' });
+    musicOff(true); musicOn();
     kick();
   };
-  const pause = () => { if (state !== 'run') return; state = 'pause'; setRunning(false); pausePanel(); };
-  const resume = () => { state = 'run'; screen.hidden = true; setRunning(true); root.focus({ preventScroll: true }); kick(); };
+  const pause = () => { if (state !== 'run') return; state = 'pause'; setRunning(false); musicOff(); pausePanel(); };
+  const resume = () => { state = 'run'; screen.hidden = true; setRunning(true); musicOn(); root.focus({ preventScroll: true }); kick(); };
 
   const jump = () => {
     if (state !== 'run') return;
@@ -293,7 +303,7 @@
     say('−доверие', RED); SFX.hit();
     paintHearts(true);
     if (hearts <= 0) {
-      state = 'over'; setRunning(false); SFX.lose();
+      state = 'over'; setRunning(false); musicOff(); SFX.lose();
       setTimeout(() => { if (state === 'over') over(); }, 800);
     }
   };
@@ -336,7 +346,7 @@
     if (state === 'run') {
       while (nextX - dist + px < W + 120 && nextX < TOTAL - 260) spawn();
       if (dist >= TOTAL) {
-        state = 'finish'; setRunning(false); fv = v; decel = v * v / (2 * (GATE - 20 - dist));
+        state = 'finish'; setRunning(false); musicOff(); fv = v; decel = v * v / (2 * (GATE - 20 - dist));
         banner.classList.remove('is-on');
         SFX.win();
         burst(GATE, 150, 50, [C.fig, LIVE, RED, GOLD, GREEN], 1.4);
