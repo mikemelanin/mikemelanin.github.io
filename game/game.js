@@ -65,36 +65,65 @@
   let ac = null, muted = false;
   try { muted = localStorage.getItem('mm-runner-muted') === '1'; } catch {}
   soundBtn.setAttribute('aria-pressed', String(!muted));
-  const beep = (f1, f2, dur, type = 'square', vol = .05, delay = 0) => {
-    if (muted) return;
+  // 8-битные звуки: квадратная волна, треугольник и шум, всё через общий регулятор громкости.
+  // На iPhone Web Audio молчит при беззвучном режиме, поэтому просим режим playback, как у музыки.
+  let master = null, noiseBuf = null;
+  const audio = () => {
+    if (muted) return null;
     try {
-      ac = ac || new (window.AudioContext || window.webkitAudioContext)();
-      const t0 = ac.currentTime + delay, o = ac.createOscillator(), g = ac.createGain();
-      o.type = type;
-      o.frequency.setValueAtTime(f1, t0);
-      o.frequency.exponentialRampToValueAtTime(f2, t0 + dur);
-      g.gain.setValueAtTime(vol, t0);
-      g.gain.exponentialRampToValueAtTime(.0001, t0 + dur);
-      o.connect(g).connect(ac.destination);
-      o.start(t0); o.stop(t0 + dur);
-    } catch {}
+      if (!ac) {
+        try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch {}
+        ac = new (window.AudioContext || window.webkitAudioContext)();
+        master = ac.createGain(); master.gain.value = .9; master.connect(ac.destination);
+        noiseBuf = ac.createBuffer(1, ac.sampleRate * .5, ac.sampleRate);
+        const d = noiseBuf.getChannelData(0);
+        for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+      }
+      if (ac.state === 'suspended') ac.resume();
+      return ac;
+    } catch { return null; }
+  };
+  const beep = (f1, f2, dur, type = 'square', vol = .1, delay = 0) => {
+    const a = audio(); if (!a) return;
+    const t0 = a.currentTime + delay, o = a.createOscillator(), g = a.createGain();
+    o.type = type;
+    o.frequency.setValueAtTime(f1, t0);
+    o.frequency.exponentialRampToValueAtTime(f2, t0 + dur);
+    g.gain.setValueAtTime(vol, t0);
+    g.gain.exponentialRampToValueAtTime(.0001, t0 + dur);
+    o.connect(g).connect(master);
+    o.start(t0); o.stop(t0 + dur + .02);
+  };
+  // шумовой хлопок: удары, приземления, взрывы
+  const hiss = (dur, vol = .1, freq = 1200, delay = 0, q = .8) => {
+    const a = audio(); if (!a) return;
+    const t0 = a.currentTime + delay, src = a.createBufferSource(), f = a.createBiquadFilter(), g = a.createGain();
+    src.buffer = noiseBuf;
+    f.type = 'bandpass'; f.frequency.setValueAtTime(freq, t0); f.Q.value = q;
+    g.gain.setValueAtTime(vol, t0);
+    g.gain.exponentialRampToValueAtTime(.0001, t0 + dur);
+    src.connect(f).connect(g).connect(master);
+    src.start(t0); src.stop(t0 + dur + .02);
   };
   const SFX = {
-    jump: () => beep(360, 700, .13),
-    jump2: () => beep(520, 980, .12),
-    coin: () => { beep(988, 988, .05, 'square', .03); beep(1319, 1319, .08, 'square', .03, .05); },
-    hit: () => beep(240, 50, .32, 'sawtooth', .06),
-    save: () => beep(700, 300, .22, 'triangle', .07),
-    up: () => beep(660, 990, .16, 'triangle', .06),
-    stage: () => [523, 784].forEach((f, i) => beep(f, f, .12, 'triangle', .05, i * .1)),
-    win: () => [523, 659, 784, 1047, 1319].forEach((f, i) => beep(f, f, .2, 'square', .045, i * .11)),
-    lose: () => [392, 330, 262].forEach((f, i) => beep(f, f * .97, .22, 'triangle', .06, i * .16))
+    jump: () => beep(300, 760, .14, 'square', .09),
+    jump2: () => { beep(500, 1100, .12, 'square', .08); beep(1000, 1500, .08, 'triangle', .06, .05); },
+    land: () => hiss(.07, .07, 500),
+    duck: () => hiss(.12, .04, 2400, 0, 2),
+    coin: () => { beep(988, 988, .06, 'square', .06); beep(1319, 1319, .12, 'square', .06, .06); },
+    hit: () => { hiss(.28, .16, 700); beep(220, 55, .3, 'square', .1); beep(180, 40, .3, 'triangle', .12); },
+    save: () => { hiss(.15, .08, 3000, 0, 1.5); beep(900, 300, .25, 'triangle', .1); },
+    shield: () => [523, 659, 784].forEach((f, i) => beep(f, f * 1.01, .1, 'square', .06, i * .06)),
+    heart: () => [659, 784, 1047].forEach((f, i) => beep(f, f, .12, 'triangle', .1, i * .07)),
+    stage: () => [523, 659, 784, 1047].forEach((f, i) => beep(f, f, .1, 'square', .06, i * .08)),
+    win: () => [523, 659, 784, 1047, 1319].forEach((f, i) => beep(f, f, .2, 'square', .07, i * .11)),
+    lose: () => { hiss(.4, .1, 400); [392, 330, 262, 196].forEach((f, i) => beep(f, f * .97, .24, 'square', .08, .1 + i * .17)); }
   };
   // музыка: играет только во время забега, файл грузится при первом запуске
   let music = null;
   const musicOn = () => {
     if (muted) return;
-    if (!music) { music = new Audio('game/audio/theme.mp3'); music.loop = true; music.volume = .35; }
+    if (!music) { music = new Audio('game/audio/theme.mp3'); music.loop = true; music.volume = .25; }
     music.play().catch(() => {});
   };
   const musicOff = (rewind = false) => { if (!music) return; music.pause(); if (rewind) music.currentTime = 0; };
@@ -253,7 +282,7 @@
     root.focus({ preventScroll: true });
     const r = root.getBoundingClientRect();
     if (r.top < 70 || r.bottom > innerHeight) root.scrollIntoView({ block: 'center', behavior: still ? 'auto' : 'smooth' });
-    musicOff(true); musicOn();
+    audio(); musicOff(true); musicOn();
     kick();
   };
   const pause = () => { if (state !== 'run') return; state = 'pause'; setRunning(false); musicOff(); pausePanel(); };
@@ -332,11 +361,13 @@
 
     // игрок
     const wasAir = p.y > 0;
+    const wasDuck = p.duck;
     p.duck = state === 'run' && keys.down;
+    if (p.duck && !wasDuck) SFX.duck();
     if (p.y > 0 || p.vy > 0) {
       p.vy -= GRAV * (p.duck ? 2.4 : 1) * dt;
       p.y += p.vy * dt;
-      if (p.y <= 0) { p.y = 0; p.vy = 0; p.jumps = 0; if (wasAir) burst(dist, 2, 6, [C.line], .35); }
+      if (p.y <= 0) { p.y = 0; p.vy = 0; p.jumps = 0; if (wasAir) { burst(dist, 2, 6, [C.line], .35); if (state === 'run') SFX.land(); } }
     }
     p.phase += dt * v / 18;
     if (inv > 0) inv -= dt;
@@ -379,8 +410,8 @@
       if (dx * dx + dy * dy < 34 * 34) {
         it.got = true;
         if (it.kind === 'coin') { coins++; paintCoins(); SFX.coin(); burst(it.x, it.h, 5, [GREEN, LIVE], .5); }
-        else if (it.kind === 'shield') { shield = true; SFX.up(); say('Evals: щит от удара', C.fig); }
-        else { hearts = Math.min(3, hearts + 1); paintHearts(); SFX.up(); say('+доверие: нашёлся спонсор', GREEN); }
+        else if (it.kind === 'shield') { shield = true; SFX.shield(); say('Evals: щит от удара', C.fig); }
+        else { hearts = Math.min(3, hearts + 1); paintHearts(); SFX.heart(); say('+доверие: нашёлся спонсор', GREEN); }
       }
     }
     items = items.filter(it => !it.got && it.x - dist + px > -40);
