@@ -4,3 +4,4 @@ bw ava cv.png
 /.playwright-cli/
 /output/
 /tmp/
+!cv/Mikhail-Melanin-CV.pdf
