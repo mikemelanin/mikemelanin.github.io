@@ -606,8 +606,8 @@
     }
   };
 
-  // герой: синий пиксельный краб
-  const CW = 4, CH = 5.2, COLS = 13, ROWS = 11;
+  // герой: синий пиксельный краб – широкое тело, глаза-столбики, ручки по бокам, четыре коротких ножки
+  const CW = 4.2, CH = 6.2, COLS = 13, ROWS = 9;
   const drawBot = () => {
     const h = p.y, x = px, air = h > 0;
     const duck = p.duck && state === 'run';
@@ -616,11 +616,11 @@
     const moving = state === 'run' || state === 'finish';
     // тень
     ctx.fillStyle = C.ink; ctx.globalAlpha = .13 * Math.max(.3, 1 - h / 200);
-    ctx.beginPath(); ctx.ellipse(x, GY + 3, 24 * Math.max(.5, 1 - h / 300), 4, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(x, GY + 3, 26 * Math.max(.5, 1 - h / 300), 4, 0, 0, Math.PI * 2); ctx.fill();
     // линии скорости
     if (moving && !still && !duck) {
       ctx.strokeStyle = C.fig; ctx.lineCap = 'round'; ctx.lineWidth = 2;
-      [[-40, 18, 18], [-50, 34, 26], [-38, 48, 14]].forEach(([dx, dy, len], i) => {
+      [[-42, 18, 18], [-52, 32, 26], [-40, 46, 14]].forEach(([dx, dy, len], i) => {
         const k = (t * 3 + i * .37) % 1;
         ctx.globalAlpha = .35 * (1 - k);
         line(x + dx - k * 30, GY - h - dy, x + dx - k * 30 - len, GY - h - dy);
@@ -629,44 +629,45 @@
     ctx.globalAlpha = state === 'run' && inv > 0 && Math.floor(t * 14) % 2 ? .35 : 1;
     ctx.save();
     ctx.translate(x, GY - h);
-    if (duck) ctx.scale(1.2, .52);
+    if (duck) ctx.scale(1.15, .55);
     if (state === 'over') ctx.rotate(.14);
-    const bob = air ? 0 : moving ? (Math.sin(p.phase * 2) > 0 ? CH * .4 : 0) : (Math.sin(t * 2.4) > .6 ? CH * .3 : 0);
+    else if (air) ctx.rotate(p.vy > 0 ? -.05 : .04);
+    const bob = air ? 0 : moving ? (Math.sin(p.phase * 2) > 0 ? 2 : 0) : (Math.sin(t * 2.4) > .6 ? 1.5 : 0);
     const top = -ROWS * CH;
-    const px0 = -COLS * CW / 2;
-    const cell = (c, r, w = 1, hh = 1) => ctx.fillRect(px0 + c * CW, top + r * CH - bob, w * CW + .5, hh * CH + .5);
+    const x0 = -COLS * CW / 2;
+    const cell = (c, r, w = 1, hh = 1) => ctx.fillRect(x0 + c * CW, top + r * CH - bob, w * CW + .5, hh * CH + .5);
+    const body = C.blue, light = C.fig;
 
-    // ножки: две пары шагают по очереди
-    ctx.fillStyle = C.blue;
-    const step = moving && !air ? (Math.sin(p.phase) > 0 ? 0 : 1) : 0;
+    // ножки: пары шагают по очереди, в прыжке поджаты
+    ctx.fillStyle = body;
+    const step = moving && !air ? (Math.sin(p.phase) > 0 ? 0 : 1) : -1;
     [2, 4, 8, 10].forEach((c, i) => {
-      const up = air ? 1 : (i % 2 === step && moving ? 1 : 0);
-      ctx.fillRect(px0 + c * CW, top + 8 * CH - bob, CW + .5, (3 - up) * CH + bob + .5);
+      const lift = air ? CH * .6 : (i % 2 === step ? CH * .5 : 0);
+      ctx.fillRect(x0 + c * CW, top + 7 * CH - bob, CW + .5, 2 * CH + bob - lift + .5);
     });
     // тело
-    ctx.fillStyle = C.blue; cell(2, 0, 9, 8);
-    ctx.fillStyle = C.fig; cell(2, 0, 9, 1);
-    ctx.fillStyle = 'rgba(0,0,0,.18)'; cell(2, 7, 9, 1);
-    // клешни: вверх в прыжке и на финише
-    ctx.fillStyle = C.blue;
-    const raise = air || happy;
-    const snap = moving && !air && Math.sin(t * 9) > .7 ? 1 : 0;
-    if (raise) { cell(0, 1, 2, 2); cell(11, 1, 2, 2); cell(0, 0, 1, 1); cell(12, 0, 1, 1); }
-    else { cell(0, 4, 2, 2); cell(11, 4 - snap, 2, 2); }
+    ctx.fillStyle = body; cell(1, 0, 11, 7);
+    ctx.fillStyle = light; cell(1, 0, 11, .5);
+    ctx.fillStyle = 'rgba(0,0,0,.16)'; cell(1, 6.5, 11, .5);
+    // ручки: вверх в прыжке и на финише, на бегу помахивают
+    ctx.fillStyle = body;
+    const wave = moving && !air && Math.sin(p.phase) > 0 ? 1 : 0;
+    if (air || happy) { cell(0, 1, 1, 2); cell(12, 1, 1, 2); cell(0, 0, 1, 1); cell(12, 0, 1, 1); }
+    else { cell(0, 3 + wave * .5, 1, 2); cell(12, 3 + (1 - wave) * .5, 1, 2); }
     // глаза смотрят вперёд по ходу
     const ex = state === 'run' ? 1 : 0;
     if (hurt) {
-      ctx.strokeStyle = RED; ctx.lineWidth = 2.4; ctx.lineCap = 'round';
+      ctx.strokeStyle = RED; ctx.lineWidth = 2.6; ctx.lineCap = 'round';
       [4, 8].forEach(c => {
-        const cx = px0 + (c + ex + .5) * CW, cy = top + 3 * CH - bob;
+        const cx = x0 + (c + ex + .5) * CW, cy = top + 2.5 * CH - bob;
         line(cx - 4, cy - 4, cx + 4, cy + 4); line(cx + 4, cy - 4, cx - 4, cy + 4);
       });
     } else if (happy) {
       ctx.fillStyle = SCREEN;
-      [4, 8].forEach(c => { cell(c - 1 + ex, 3); cell(c + ex, 2); cell(c + 1 + ex, 3); });
+      [4, 8].forEach(c => { cell(c - 1 + ex, 2.5, 1, .6); cell(c + ex, 1.9, 1, .6); cell(c + 1 + ex, 2.5, 1, .6); });
     } else {
       ctx.fillStyle = SCREEN;
-      [4, 8].forEach(c => p.blink > 0 ? cell(c + ex, 3, 1, .4) : cell(c + ex, 2, 1, 2));
+      [4, 8].forEach(c => p.blink > 0 ? cell(c + ex, 2.8, 1, .35) : cell(c + ex, 1.5, 1, 2.2));
     }
     ctx.restore();
 
