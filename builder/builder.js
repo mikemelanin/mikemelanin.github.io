@@ -1,6 +1,7 @@
-// Конструктор AI-архитектуры: 4 вопроса по одному, схема справа собирается по мере ответов.
-// Сроки, команда и риски появляются в конце. Все цифры – ориентиры по опыту проектов, не смета.
-// Тексты правятся в DATA и QUESTIONS.
+// Конструктор AI-архитектуры: задача текстом или подсказкой, потом 3 вопроса, схема справа собирается по ходу.
+// В конце – сроки и кнопки обсудить. Все цифры – ориентиры по опыту проектов, не смета.
+// Тексты правятся в DATA и QUESTIONS, слова для распознавания задачи – в WORDS.
+// Наружу: window.MM_BUILDER – задачи для подсказок двойника и open() для перехода в конструктор.
 (() => {
   const root = document.querySelector('.bld');
   if (!root) return;
@@ -14,36 +15,28 @@
         channels: [['Чат на сайте и в приложении', 'клиенты'], ['Telegram и мессенджеры', 'клиенты'], ['Рабочее место оператора', 'подсказки и передача диалога']],
         core: [['Agent Runtime', 'сценарии, память диалога, передача человеку'], ['MCP и tools', 'статус заказа, карты, платежей']],
         data: [['Knowledge Layer', 'база ответов и регламентов'], ['CRM и биллинг', 'данные клиента через API']],
-        pilot: [6, 8], level: 2, pdn: true,
-        kpi: ['Доля диалогов без оператора', 'Среднее время обработки (AHT)', 'CSAT и доля эскалаций'],
-        risks: ['Агент обещает то, чего нет в регламенте – нужны guardrails и evals на реальных диалогах', 'Слабая передача диалога оператору портит CSAT']
+        pilot: [6, 8], level: 2, pdn: true
       },
       rag: {
         label: 'Ассистент по регламентам', short: 'ассистент по регламентам', hint: 'ищет ответы в документах компании',
         channels: [['Портал сотрудников', 'поиск и ответы'], ['Корпоративный мессенджер', 'бот для сотрудников']],
         core: [['RAG-пайплайн', 'поиск, ранжирование, ответ со ссылкой']],
         data: [['Knowledge Layer', 'чистка, версии, владельцы документов'], ['СЭД, Confluence, файлы', 'коннекторы и права доступа']],
-        pilot: [4, 6], level: 1, pdn: false,
-        kpi: ['Время поиска ответа', 'Доля ответов со ссылкой на источник', 'Нагрузка на экспертов и линию 2'],
-        risks: ['Устаревшие документы дают уверенные неверные ответы – нужен владелец базы знаний', 'Права доступа: ассистент не должен показывать чужие документы']
+        pilot: [4, 6], level: 1, pdn: false
       },
       speech: {
         label: 'Речевая аналитика колл-центра', short: 'речевая аналитика', hint: 'разбирает 100% звонков вместо выборки',
         channels: [['Телефония и записи звонков', 'поток или выгрузка'], ['BI-дашборды', 'для руководителей и QA']],
         core: [['ASR', 'распознавание речи и разметка ролей'], ['LLM-аналитика', 'чек-листы, темы, нарушения скрипта']],
         data: [['Хранилище транскриптов', 'поиск и выборки'], ['CRM', 'связка звонка с клиентом и сделкой']],
-        pilot: [6, 8], level: 2, pdn: true,
-        kpi: ['Доля проверенных звонков: 100% вместо выборки', 'Конверсия и соблюдение скрипта', 'Время QA-проверки'],
-        risks: ['Качество ASR на шумных звонках – проверяем на ваших записях до старта', 'Записи звонков – персональные данные, обезличивание обязательно']
+        pilot: [6, 8], level: 2, pdn: true
       },
       process: {
         label: 'Агент для бэк-офиса', short: 'агент для бэк-офиса', hint: 'обрабатывает заявки и документы',
         channels: [['Почта и СЭД', 'входящие документы и заявки'], ['Рабочее место сотрудника', 'проверка и согласование']],
         core: [['Agent Runtime', 'шаги процесса, проверки, человек в контуре'], ['MCP и tools', 'действия в учётных системах']],
         data: [['Извлечение из документов', 'OCR, поля, сверка'], ['ERP, АБС, СЭД', 'чтение и запись через API']],
-        pilot: [8, 10], level: 3, pdn: true,
-        kpi: ['Время обработки заявки', 'Доля заявок без ручной работы', 'Ошибки и возвраты'],
-        risks: ['Агент с правом записи в учётные системы – нужен человек в контуре на старте', 'Интеграции с legacy-системами съедают больше всего времени']
+        pilot: [8, 10], level: 3, pdn: true
       }
     },
     where: {
@@ -62,6 +55,23 @@
     }
   };
 
+  // слова, по которым задача из свободного текста попадает в один из вариантов (по началу слова)
+  const WORDS = {
+    support: ['клиент', 'поддерж', 'чат', 'обращен', 'оператор', 'мессенджер', 'бот', 'faq', 'вопрос', 'жалоб', 'support', 'контакт'],
+    rag: ['документ', 'регламент', 'инструкц', 'база знан', 'поиск', 'найти', 'confluence', 'политик', 'норматив', 'сотрудник', 'знани', 'rag', 'ассистент'],
+    speech: ['звон', 'колл', 'call', 'речев', 'разговор', 'запис', 'телефон', 'скрипт', 'контроль качеств', 'qa'],
+    process: ['заявк', 'бэк', 'back', 'офис', 'счет', 'счёт', 'договор', 'накладн', 'документооборот', 'сэд', 'erp', '1с', 'обработ', 'автоматиз', 'процесс', 'сверк', 'кредит']
+  };
+  const matchUse = text => {
+    const t = ' ' + text.toLowerCase().replace(/ё/g, 'е').replace(/[^a-zа-я0-9]+/g, ' ') + ' ';
+    let best = null, top = 0;
+    Object.entries(WORDS).forEach(([k, ws]) => {
+      const score = ws.filter(w => t.includes(' ' + w.replace(/ё/g, 'е'))).length;
+      if (score > top) { top = score; best = k; }
+    });
+    return best;
+  };
+
   const QUESTIONS = [
     { key: 'use', short: 'Задача', title: 'Какую задачу решаем?' },
     { key: 'where', short: 'Контур', title: 'Где должны работать модели?' },
@@ -70,83 +80,96 @@
   ];
 
   const state = { use: null, where: null, scale: null, pdn: null };
+  let text = '', guessed = false, draft = '';
   let step = 0;
   let prev = new Set();
 
   root.innerHTML = `
     <div class="bld-q"></div>
-    <div class="bld-out">
-      <div class="bld-diagram" aria-live="polite"></div>
-      <div class="bld-lists" hidden></div>
-    </div>`;
+    <div class="bld-out"><div class="bld-diagram" aria-live="polite"></div></div>`;
   const qEl = root.querySelector('.bld-q');
   const diagEl = root.querySelector('.bld-diagram');
-  const listsEl = root.querySelector('.bld-lists');
 
   const firstOpen = () => { const i = QUESTIONS.findIndex(q => state[q.key] === null); return i < 0 ? QUESTIONS.length : i; };
   const range = ([a, b], unit) => `${a}–${b} ${unit}`;
   const add = (x, y) => [x[0] + y[0], x[1] + y[1]];
-  const LEVELS = ['', 'Низкая', 'Умеренная', 'Средняя', 'Высокая', 'Очень высокая'];
+  const esc = s => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const clip = (s, n) => s.length > n ? s.slice(0, n - 1).trim() + '…' : s;
   const TG_ICON = '<svg aria-hidden="true" viewBox="0 0 24 24" fill="currentColor"><path d="M21.9 4.3 18.7 19.5c-.2 1-.9 1.3-1.7.8l-4.8-3.5-2.3 2.2c-.3.3-.5.5-1 .5l.3-4.9 8.9-8c.4-.3-.1-.5-.6-.2l-11 6.9-4.7-1.5c-1-.3-1-1 .2-1.5L20.5 3c.9-.3 1.6.2 1.4 1.3Z"/></svg>';
+  const RESET_ICON = '<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>';
 
   const calc = () => {
     const u = DATA.use[state.use], w = DATA.where[state.where], s = DATA.scale[state.scale], pdn = state.pdn === 'yes';
     const pilot = add(add(u.pilot, w.add), pdn ? [1, 2] : [0, 0]);
     const prod = add(s.prod, state.where === 'onprem' ? [1, 2] : [0, 0]);
-    const level = Math.max(1, Math.min(5, Math.round(u.level + w.level + s.level + (pdn ? .5 : 0))));
-    const team = ['AI-архитектор', '2–3 FDE-инженера', 'Бизнес-аналитик'];
-    if (state.where !== 'cloud') team.push('MLOps / DevOps');
-    if (state.use === 'speech') team.push('Data-аналитик');
-    if (pdn) team.push('ИБ заказчика с первого дня');
-    if (state.scale === 'all') team.push('Владелец продукта от бизнеса');
-    const risks = [...u.risks];
-    if (state.where === 'onprem') risks.push('GPU и закупка железа – часто самый длинный срок, закладываем сразу');
-    if (state.where === 'cloud' && pdn) risks.push('ПДн и облачные модели: нужна юридическая проверка и обезличивание');
-    if (state.scale === 'all') risks.push('Масштаб на всю компанию упирается в change management, а не в модель');
-    const summary = `Собрал на сайте архитектуру: ${u.short}, ${w.label.toLowerCase()}, ${s.label.toLowerCase()} (${s.users})${pdn ? ', есть ПДн' : ''}. Хочу обсудить.`;
-    return { u, w, s, pilot, prod, level, team, risks, summary };
+    const task = text ? `"${text}"` : u.short;
+    const summary = `Собрал на сайте архитектуру. Задача: ${task}. ${w.label}, ${s.label.toLowerCase()} (${s.users})${pdn ? ', есть ПДн' : ''}. Хочу обсудить.`;
+    return { u, w, s, pilot, prod, summary };
+  };
+
+  const reset = () => {
+    Object.keys(state).forEach(k => state[k] = null);
+    text = ''; draft = ''; guessed = false;
+    step = 0; prev = new Set();
   };
 
   // ---------- question card ----------
+  const head = open => `
+    <div class="bld-top">
+      <div class="bld-dots" aria-hidden="true">${QUESTIONS.map((_, i) => `<i class="${i < open ? 'is-done' : ''}${i === step ? ' is-on' : ''}"></i>`).join('')}</div>
+      ${state.use ? `<button type="button" class="bld-reset" data-reset>${RESET_ICON}Заново</button>` : ''}
+    </div>`;
+
   const renderQ = () => {
     const open = firstOpen();
-    const dots = QUESTIONS.map((_, i) => `<i class="${i < open ? 'is-done' : ''}${i === step ? ' is-on' : ''}"></i>`).join('');
+    if (step === 0) {
+      qEl.innerHTML = `
+        ${head(open)}
+        <p class="bld-step">Шаг 1 из ${QUESTIONS.length}</p>
+        <h3 tabindex="-1">${QUESTIONS[0].title}</h3>
+        <form class="bld-ask">
+          <label class="sr-only" for="bld-text">Опишите задачу</label>
+          <textarea id="bld-text" rows="3" placeholder="Своими словами: например, разгрузить колл-центр от типовых вопросов">${esc(draft || text)}</textarea>
+          <button type="submit" class="btn btn-blue">Собрать схему</button>
+        </form>
+        <p class="bld-or">или начните с примера</p>
+        <div class="bld-chips">${Object.entries(DATA.use).map(([k, o]) => `<button type="button" data-v="${k}"${state.use === k && !text ? ' class="is-on" aria-pressed="true"' : ''}>${o.label}</button>`).join('')}</div>`;
+      return;
+    }
     if (step < QUESTIONS.length) {
       const q = QUESTIONS[step];
       const usual = q.key === 'pdn' && state.use ? (DATA.use[state.use].pdn ? 'yes' : 'no') : null;
       qEl.innerHTML = `
-        <div class="bld-dots" aria-hidden="true">${dots}</div>
-        <p class="bld-step">Вопрос ${step + 1} из ${QUESTIONS.length}</p>
+        ${head(open)}
+        <p class="bld-step">Шаг ${step + 1} из ${QUESTIONS.length}</p>
         <h3 tabindex="-1">${q.title}</h3>
         <div class="bld-opts">${Object.entries(DATA[q.key]).map(([k, o]) => `
           <button type="button" data-v="${k}"${state[q.key] === k ? ' class="is-on" aria-pressed="true"' : ''}>
             <strong>${o.label}${usual === k ? '<em>обычно для этой задачи</em>' : ''}</strong><span>${o.hint}</span>
           </button>`).join('')}
         </div>
-        ${step > 0 ? '<button type="button" class="bld-back" data-back>← Назад</button>' : ''}`;
+        <button type="button" class="bld-back" data-back>← Назад</button>`;
       return;
     }
     const r = calc();
+    const taskLabel = text ? clip(text, 60) : r.u.label;
     qEl.innerHTML = `
-      <div class="bld-dots" aria-hidden="true">${dots}</div>
+      ${head(open)}
       <p class="bld-step">Готово</p>
-      <h3 tabindex="-1">${r.u.label}, ${r.w.label.toLowerCase()}</h3>
-      <ul class="bld-answers">${QUESTIONS.map((q, i) => `<li><span>${q.short}</span><button type="button" data-edit="${i}">${DATA[q.key][state[q.key]].label}</button></li>`).join('')}</ul>
-      <div class="bld-stats">
-        <div class="bld-stat"><span>До пилота</span><strong>${range(r.pilot, 'нед')}</strong></div>
-        <div class="bld-stat"><span>До production</span><strong>${range(r.prod, 'мес')}</strong></div>
-        <div class="bld-stat"><span>Сложность</span><strong>${LEVELS[r.level]}</strong><i class="bld-meter" style="--v:${r.level}" aria-hidden="true"></i></div>
-      </div>
+      <h3 tabindex="-1">${esc(taskLabel)}</h3>
+      ${guessed ? `<p class="bld-guess">Ближе всего к шаблону: ${r.u.label.toLowerCase()}. Схема примерная.</p>` : ''}
+      <ul class="bld-answers">${QUESTIONS.map((q, i) => `<li><span>${q.short}</span><button type="button" data-edit="${i}">${i === 0 && text ? esc(clip(text, 28)) : DATA[q.key][state[q.key]].label}</button></li>`).join('')}</ul>
+      <p class="bld-time">Пилот <strong>${range(r.pilot, 'нед')}</strong>, production <strong>${range(r.prod, 'мес')}</strong></p>
       <div class="bld-actions">
-        <a class="btn btn-blue" href="${TG}?text=${encodeURIComponent(r.summary)}" target="_blank" rel="noopener" data-copy="${r.summary}">${TG_ICON}<span>Обсудить эту архитектуру</span></a>
-        <button type="button" class="bld-back" data-reset>Собрать заново</button>
+        <a class="btn btn-blue" href="${TG}?text=${encodeURIComponent(r.summary)}" target="_blank" rel="noopener" data-copy="${esc(r.summary)}">${TG_ICON}<span>Обсудить в Telegram</span></a>
+        <button type="button" class="bld-back" data-twin>Спросить AI-двойника</button>
       </div>
       <p class="bld-note">Ориентиры по опыту проектов. Точная оценка – после discovery на ваших данных.</p>`;
   };
 
   // ---------- diagram: fills in as answers come ----------
   const block = ([t, d], cls = '') => `<div class="bld-block ${cls}" data-k="${t}"><strong>${t}</strong><span>${d}</span></div>`;
-  const wait = n => `<div class="bld-block is-wait">после вопроса ${n}</div>`;
+  const wait = n => `<div class="bld-block is-wait">после шага ${n}</div>`;
   const row = (label, items) => `<div class="bld-row"><p class="bld-row-label">${label}</p><div class="bld-row-items">${items.join('')}</div></div>`;
 
   const renderDiagram = () => {
@@ -163,7 +186,7 @@
     }
     diagEl.innerHTML = `
       <div class="bld-frame ${w ? 'bld-' + state.where : 'bld-pending'}">
-        <p class="bld-frame-label">${w ? w.frame : u ? 'Контур – после вопроса 2' : 'Схема соберётся по вашим ответам'}</p>
+        <p class="bld-frame-label">${w ? w.frame : u ? 'Контур – после шага 2' : 'Схема соберётся по вашим ответам'}</p>
         <div class="bld-main">
           ${u ? '<span class="bld-flow" aria-hidden="true"></span>' : ''}
           ${row('Каналы', u ? u.channels.map(c => block(c)) : [wait(1)])}
@@ -185,15 +208,6 @@
       if (!prev.has(b.dataset.k) && !still) b.classList.add('is-new');
     });
     prev = now;
-
-    if (step === QUESTIONS.length) {
-      const r = calc();
-      listsEl.innerHTML = `
-        <div class="bld-list bld-team"><h3>Команда</h3><ul>${r.team.map(t => `<li>${t}</li>`).join('')}</ul></div>
-        <div class="bld-list"><h3>Метрики эффекта</h3><ul>${r.u.kpi.map(t => `<li>${t}</li>`).join('')}</ul></div>
-        <div class="bld-list bld-risks"><h3>Главные риски</h3><ul>${r.risks.map(t => `<li>${t}</li>`).join('')}</ul></div>`;
-      listsEl.hidden = false;
-    } else listsEl.hidden = true;
   };
 
   const render = focus => {
@@ -202,24 +216,57 @@
     if (focus) qEl.querySelector('h3').focus({ preventScroll: true });
   };
 
+  const setTask = (use, t = '') => {
+    text = t; draft = ''; guessed = false;
+    if (!use) { use = matchUse(t) || 'rag'; guessed = !matchUse(t); }
+    state.use = use;
+    step = firstOpen();
+  };
+
+  qEl.addEventListener('submit', e => {
+    e.preventDefault();
+    const t = qEl.querySelector('textarea').value.trim().replace(/\s+/g, ' ');
+    if (!t) { qEl.querySelector('textarea').focus(); return; }
+    setTask(null, t);
+    render(true);
+  });
+  qEl.addEventListener('input', e => { if (e.target.matches('textarea')) draft = e.target.value; });
+  qEl.addEventListener('keydown', e => {
+    if (e.target.matches('textarea') && e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); e.target.form.requestSubmit(); }
+  });
+
   qEl.addEventListener('click', e => {
     const opt = e.target.closest('[data-v]');
     if (opt) {
-      state[QUESTIONS[step].key] = opt.dataset.v;
-      step = firstOpen();
+      if (step === 0) setTask(opt.dataset.v);
+      else { state[QUESTIONS[step].key] = opt.dataset.v; step = firstOpen(); }
       return render(true);
     }
     const edit = e.target.closest('[data-edit]');
     if (edit) { step = +edit.dataset.edit; return render(true); }
     if (e.target.closest('[data-back]')) { step = Math.max(0, step - 1); return render(true); }
-    if (e.target.closest('[data-reset]')) {
-      Object.keys(state).forEach(k => state[k] = null);
-      step = 0; prev = new Set();
-      return render(true);
+    if (e.target.closest('[data-reset]')) { reset(); return render(true); }
+    if (e.target.closest('[data-twin]') && window.MM_TWIN) {
+      const r = calc();
+      window.MM_TWIN.ask(text ? `Есть задача: ${text}. ${r.w.label}, ${r.s.label.toLowerCase()}${state.pdn === 'yes' ? ', есть ПДн' : ''}.` : `Есть задача: ${r.u.short}. ${r.w.label}, ${r.s.label.toLowerCase()}${state.pdn === 'yes' ? ', есть ПДн' : ''}.`);
+      return;
     }
     const a = e.target.closest('[data-copy]');
     if (a && navigator.clipboard) navigator.clipboard.writeText(a.dataset.copy).catch(() => {});
   });
+
+  // для двойника: те же задачи-подсказки и переход в конструктор с выбранной задачей
+  window.MM_BUILDER = {
+    tasks: Object.entries(DATA.use).map(([id, o]) => ({ id, label: o.label, hint: o.hint, pilot: o.pilot })),
+    open(use, t = '') {
+      reset();
+      setTask(use || null, t);
+      render(false);
+      const sec = document.getElementById('builder');
+      sec.scrollIntoView({ behavior: still ? 'auto' : 'smooth', block: 'start' });
+      setTimeout(() => qEl.querySelector('h3').focus({ preventScroll: true }), still ? 0 : 600);
+    }
+  };
 
   render(false);
 })();

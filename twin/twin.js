@@ -1,6 +1,7 @@
 // AI-двойник: чат на странице. Сейчас отвечает по базе twin/kb.js.
 // Когда появится бэкенд с LLM, впишите его адрес в ENDPOINT: POST {question, history} -> {answer}.
 // Если бэкенд недоступен, двойник молча вернётся к базе.
+// Задачи-подсказки берутся из конструктора (window.MM_BUILDER), наружу отдаём window.MM_TWIN.ask().
 (() => {
   const ENDPOINT = '';
   const KB = window.TWIN_KB;
@@ -100,8 +101,25 @@
     return `<a class="tw-tg" href="${url}" target="_blank" rel="noopener"${q ? ` data-copy="${esc(q)}"` : ''}><svg aria-hidden="true" viewBox="0 0 24 24" fill="currentColor"><path d="M21.9 4.3 18.7 19.5c-.2 1-.9 1.3-1.7.8l-4.8-3.5-2.3 2.2c-.3.3-.5.5-1 .5l.3-4.9 8.9-8c.4-.3-.1-.5-.6-.2l-11 6.9-4.7-1.5c-1-.3-1-1 .2-1.5L20.5 3c.9-.3 1.6.2 1.4 1.3Z"/></svg>Написать настоящему Михаилу</a>`;
   };
 
-  const showChips = ids => {
+  // задачи из конструктора: подсказки под приветствием и кнопка Собрать архитектуру в ответе
+  const BLD = window.MM_BUILDER;
+  const BUILD_ICON = '<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="8.5" y="14" width="7" height="7" rx="1.5"/><path d="M6.5 10v2h11v-2M12 12v2"/></svg>';
+  const buildButton = (id, q = '') => `<button type="button" class="tw-tg tw-build" data-build="${id || ''}" data-q="${esc(q)}">${BUILD_ICON}Собрать архитектуру</button>`;
+  const taskEntry = t => ({
+    a: `**${t.label}**: ${t.hint}. Пилот обычно ${t.pilot[0]}–${t.pilot[1]} недель, дальше вывод в production.\n\nСоберите схему под вашу задачу: ещё 3 вопроса, и будут сроки. Или сразу напишите мне.`,
+    build: t.id, tg: true, next: ['approach', 'cost', 'case']
+  });
+
+  const showChips = (ids, withTasks) => {
     chips.innerHTML = '';
+    if (withTasks && BLD) BLD.tasks.forEach(t => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'is-task';
+      b.textContent = t.label;
+      b.addEventListener('click', () => ask(t.label, taskEntry(t)));
+      chips.append(b);
+    });
     ids.filter(id => byId[id]).forEach(id => {
       const b = document.createElement('button');
       b.type = 'button';
@@ -122,7 +140,7 @@
     } catch { return null; }
   };
 
-  const ask = async (question, entry) => {
+  const ask = async (question, entry, fromBuilder) => {
     question = question.trim();
     if (!question || busy) return;
     busy = true;
@@ -141,7 +159,8 @@
     dots.innerHTML = md(text);
     await type(dots);
     if (!hitEntry && !fromLLM) dots.insertAdjacentHTML('beforeend', tgButton(question));
-    else if (hitEntry && hitEntry.tg) dots.insertAdjacentHTML('beforeend', tgButton());
+    else if (hitEntry && hitEntry.tg) dots.insertAdjacentHTML('beforeend', tgButton(hitEntry.build ? question : ''));
+    if (BLD && !fromBuilder && (task || (hitEntry && hitEntry.build))) dots.insertAdjacentHTML('beforeend', buildButton(hitEntry && hitEntry.build, task ? question : ''));
     scrollDown();
 
     history.push({ role: 'user', content: question }, { role: 'assistant', content: text });
@@ -155,6 +174,8 @@
   log.addEventListener('click', e => {
     const a = e.target.closest('[data-copy]');
     if (a && navigator.clipboard) navigator.clipboard.writeText(a.dataset.copy).catch(() => {});
+    const bld = e.target.closest('[data-build]');
+    if (bld) BLD.open(bld.dataset.build || null, bld.dataset.q);
   });
 
   form.addEventListener('submit', e => {
@@ -224,14 +245,22 @@
   }
 
   // старт: приветствие появляется, когда чат попадает в экран
-  let started = false;
-  const start = async () => {
-    if (started) return;
-    started = true;
+  let starting;
+  const start = () => starting || (starting = (async () => {
     const el = add('bot', md(KB.greeting));
     await type(el);
-    showChips(KB.start);
+    showChips(KB.start.filter(id => !['banks', 'code'].includes(id)), true);
     scrollDown();
+  })());
+
+  // конструктор передаёт сюда собранную задачу: прокручиваем к чату и задаём вопрос
+  window.MM_TWIN = {
+    async ask(q) {
+      root.scrollIntoView({ behavior: still ? 'auto' : 'smooth', block: 'center' });
+      await start();
+      while (busy) await wait(200);
+      ask(q, null, true);
+    }
   };
   if ('IntersectionObserver' in window) {
     const io = new IntersectionObserver(([e]) => { if (e.isIntersecting) { io.disconnect(); start(); } }, { threshold: .3 });
