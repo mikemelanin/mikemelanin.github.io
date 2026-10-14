@@ -6,22 +6,21 @@
     Promise.race([document.fonts.ready, new Promise(r => setTimeout(r, 900))]).then(start);
   } else { start(); }
 
-  const mini = document.querySelector('.mini-nav');
-  const hero = document.querySelector('.hero');
-  if ('IntersectionObserver' in window) {
-    new IntersectionObserver(([e]) => {
-      const on = !e.isIntersecting;
-      mini.classList.toggle('is-on', on);
-      mini.setAttribute('aria-hidden', String(!on));
-      mini.querySelectorAll('a').forEach(a => a.tabIndex = on ? 0 : -1);
-    }, { rootMargin: '-80px 0px 0px 0px' }).observe(hero);
+  // one fixed menu: shadow after scroll, current section highlighted
+  const bar = document.querySelector('.topbar');
+  if (bar) {
+    const shade = () => bar.classList.toggle('is-scrolled', scrollY > 8);
+    addEventListener('scroll', shade, { passive: true });
+    shade();
     // подсвечиваем только якоря этой страницы, ссылки на другую страницу не трогаем
-    const links = [...mini.querySelectorAll('.nav-links a')].filter(a => a.hash && a.pathname === location.pathname);
-    const io = new IntersectionObserver(es => es.forEach(e => {
-      if (!e.isIntersecting) return;
-      links.forEach(a => a.classList.toggle('is-here', a.hash === '#' + e.target.id));
-    }), { rootMargin: '-45% 0px -50% 0px' });
-    links.forEach(a => { const t = document.getElementById(a.hash.slice(1)); if (t) io.observe(t); });
+    const links = [...bar.querySelectorAll('.nav-links a')].filter(a => a.hash && a.pathname === location.pathname);
+    if (links.length && 'IntersectionObserver' in window) {
+      const io = new IntersectionObserver(es => es.forEach(e => {
+        if (!e.isIntersecting) return;
+        links.forEach(a => a.classList.toggle('is-here', a.hash === '#' + e.target.id));
+      }), { rootMargin: '-45% 0px -50% 0px' });
+      ['top', ...links.map(a => a.hash.slice(1))].forEach(id => { const t = document.getElementById(id); if (t) io.observe(t); });
+    }
   }
 
   const set = document.querySelector('.marquee-set');
