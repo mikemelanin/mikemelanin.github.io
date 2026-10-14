@@ -1,7 +1,7 @@
 // AI-двойник: чат на странице. Сейчас отвечает по базе twin/kb.js.
 // Когда появится бэкенд с LLM, впишите его адрес в ENDPOINT: POST {question, history} -> {answer}.
 // Если бэкенд недоступен, двойник молча вернётся к базе.
-// Задачи-подсказки берутся из конструктора (window.MM_BUILDER), наружу отдаём window.MM_TWIN.ask().
+// Задачи-подсказки – KB.tasks. Если на странице есть конструктор (window.MM_BUILDER), в ответе появится кнопка Собрать архитектуру.
 (() => {
   const ENDPOINT = '';
   const KB = window.TWIN_KB;
@@ -105,14 +105,15 @@
   const BLD = window.MM_BUILDER;
   const BUILD_ICON = '<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="8.5" y="14" width="7" height="7" rx="1.5"/><path d="M6.5 10v2h11v-2M12 12v2"/></svg>';
   const buildButton = (id, q = '') => `<button type="button" class="tw-tg tw-build" data-build="${id || ''}" data-q="${esc(q)}">${BUILD_ICON}Собрать архитектуру</button>`;
+  const TASKS = KB.tasks || [];
   const taskEntry = t => ({
-    a: `**${t.label}**: ${t.hint}. Пилот обычно ${t.pilot[0]}–${t.pilot[1]} недель, дальше вывод в production.\n\nСоберите схему под вашу задачу: ещё 3 вопроса, и будут сроки. Или сразу напишите мне.`,
+    a: `**${t.label}**: ${t.hint}. Пилот обычно ${t.pilot[0]}–${t.pilot[1]} недель, дальше вывод в production.\n\nНапишите Михаилу пару строк о вашем процессе – он предложит, с чего начать.`,
     build: t.id, tg: true, next: ['approach', 'cost', 'case']
   });
 
   const showChips = (ids, withTasks) => {
     chips.innerHTML = '';
-    if (withTasks && BLD) BLD.tasks.forEach(t => {
+    if (withTasks) TASKS.forEach(t => {
       const b = document.createElement('button');
       b.type = 'button';
       b.className = 'is-task';
