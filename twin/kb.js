@@ -277,6 +277,12 @@ window.TWIN_KB = {
       next: ['tools', 'code', 'contacts']
     },
     {
+      id: 'game', q: 'Что за игра на сайте?',
+      keys: ['игра', 'игру', 'поиграть', 'мини игра', 'game'],
+      a: 'Это [мини-игра](#game) про путь AI-пилота до production: 8 развилок из реальных проектов, от discovery до масштабирования. Каждое решение двигает доверие бизнеса, бюджет, сроки и качество. Пройти можно за пару минут.',
+      next: ['approach', 'pilots', 'case']
+    },
+    {
       id: 'contacts', q: 'Как связаться?',
       keys: ['контакт', 'связат', 'телеграм', 'telegram', 'почт', 'email', 'e-mail', 'mail', 'написать', 'позвонить', 'телефон', 'созвон', 'встреч'],
       a: 'Быстрее всего в Telegram: [@mike_melanin](https://t.me/mike_melanin). Почта: [m.v.melanin@gmail.com](mailto:m.v.melanin@gmail.com).\n\nПолное резюме можно [скачать в PDF](cv/Mikhail-Melanin-CV.pdf).',
