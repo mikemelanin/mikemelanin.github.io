@@ -101,9 +101,13 @@
   let ac = null, muted = false;
   try { muted = localStorage.getItem('mm-runner-muted') === '1'; } catch {}
   soundBtn.setAttribute('aria-pressed', String(!muted));
+  // На iPhone Web Audio молчит при беззвучном режиме, поэтому просим режим playback, как у музыки.
   const audio = () => {
     try {
-      ac = ac || new (window.AudioContext || window.webkitAudioContext)();
+      if (!ac) {
+        try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch {}
+        ac = new (window.AudioContext || window.webkitAudioContext)();
+      }
       if (ac.state === 'suspended') ac.resume();
     } catch { ac = null; }
     return ac;

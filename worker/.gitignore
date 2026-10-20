@@ -1,0 +1,4 @@
+prompt.js
+node_modules/
+.wrangler/
+.dev.vars
