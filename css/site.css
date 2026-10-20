@@ -53,7 +53,7 @@ img { display: block; max-width: 100%; }
   display: inline-flex; align-items: center; gap: .6em;
   font: 600 17px/1 var(--text);
   padding: 18px 26px;
-  border-radius: 999px;
+  border: 0; border-radius: 999px; cursor: pointer; appearance: none;
   text-decoration: none;
   transition: transform .18s ease, background-color .18s ease, color .18s ease;
   white-space: nowrap;
@@ -218,7 +218,7 @@ h2 { font: 700 clamp(34px, 5vw, 68px)/1 var(--display); letter-spacing: -.04em; 
   position: absolute; left: 50%; right: 0; top: 0; bottom: 50%; border-radius: 0 0 0 16px;
   background: color-mix(in srgb, var(--figure) 12%, transparent); opacity: 0; transition: opacity .6s;
 }
-.quad span { position: absolute; left: 12px; bottom: 10px; font-size: 13px; font-weight: 600; color: var(--figure); }
+.quad span { position: absolute; left: 12px; bottom: 10px; font-size: 13px; line-height: 1; font-weight: 600; color: var(--figure); }
 .plot i {
   position: absolute; left: calc(var(--x) * 1%); bottom: calc(var(--y) * 1%);
   width: 14px; height: 14px; margin: 0 0 -7px -7px; border-radius: 50%; background: var(--muted); opacity: .55;
@@ -716,9 +716,9 @@ body { --cut: var(--paper); }
 .rn-banner small { display: block; font-size: 13px; font-weight: 600; color: var(--muted); }
 .rn-banner strong { display: block; font: 800 clamp(30px, 4.4vw, 56px)/1.05 var(--display); letter-spacing: -.05em; color: var(--figure); }
 .rn-banner span { display: block; margin-top: 6px; font-size: 15px; font-weight: 500; color: var(--ink); }
-.rn-screen { position: absolute; inset: 0; display: grid; place-items: center; padding: 16px; background: color-mix(in srgb, var(--card) 45%, transparent); backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px); }
+.rn-screen { position: absolute; inset: 0; display: flex; overflow-y: auto; overscroll-behavior: contain; padding: 16px; background: color-mix(in srgb, var(--card) 45%, transparent); backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px); }
 .rn-screen[hidden] { display: none; }
-.rn-panel { width: min(480px, 100%); text-align: center; background: var(--card); border: 1px solid var(--line); border-radius: 24px; padding: 24px 26px; box-shadow: 0 24px 60px -30px rgba(10,12,38,.55); animation: panelIn .4s cubic-bezier(.2,.7,.2,1) both; }
+.rn-panel { width: min(480px, 100%); margin: auto; text-align: center; background: var(--card); border: 1px solid var(--line); border-radius: 24px; padding: 24px 26px; box-shadow: 0 24px 60px -30px rgba(10,12,38,.55); animation: panelIn .4s cubic-bezier(.2,.7,.2,1) both; }
 .rn-kicker { font-size: 13px; font-weight: 600; color: var(--figure); margin-bottom: 8px; }
 .rn-panel h3 { font: 700 clamp(22px, 2.4vw, 30px)/1.1 var(--display); letter-spacing: -.04em; margin-bottom: 10px; }
 .rn-panel h3.is-lost { color: #E5484D; }
@@ -727,6 +727,13 @@ body { --cut: var(--paper); }
 .rn-panel strong { color: var(--ink); }
 .rn-keys { list-style: none; display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 16px; margin-top: 14px; font-size: 14px; color: var(--muted); }
 .rn-keys kbd { font: 600 12px/1 var(--text); padding: 4px 7px; border-radius: 6px; background: var(--chip); box-shadow: inset 0 -2px 0 var(--line); color: var(--ink); }
+/* реплика Clawd в стиле терминала Claude Code */
+.rn-panel p.rn-term { display: flex; align-items: center; gap: 8px; width: fit-content; max-width: 100%; margin: 2px auto 12px; padding: 7px 12px; border-radius: 10px; background: #1F1E1D; color: #F0EEE6; font: 500 13px/1.35 ui-monospace, 'SF Mono', Menlo, Consolas, monospace; text-align: left; }
+.rn-panel p.rn-term::before { content: '✻'; flex: none; color: #D97757; font-size: 15px; line-height: 1; animation: rn-spin 3s linear infinite; }
+@keyframes rn-spin { to { transform: rotate(360deg); } }
+.rn-badges { list-style: none; display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin-top: 12px; }
+.rn-badges li { padding: 5px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; color: #D97757; background: color-mix(in srgb, #D97757 14%, transparent); }
+.rn-panel p.rn-best { margin-top: 10px; font-size: 13px; font-weight: 600; color: var(--figure); }
 .rn-btns { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 18px; }
 .rn-btns .btn { padding: 14px 22px; font-size: 16px; }
 .rn-ctrl { position: absolute; bottom: 12px; display: grid; place-items: center; border: 0; cursor: pointer; color: var(--ink); background: var(--chip); }
@@ -738,16 +745,25 @@ body { --cut: var(--paper); }
 .rn-duck svg { width: 28px; height: 28px; }
 .rn-duck[hidden] { display: none; }
 .rn-duck.is-down { background: var(--figure); color: #fff; }
+/* холст 320px в высоту – описание под заголовком не влезает */
+@media (max-width: 900px) {
+  .rn-intro .rn-sub { display: none; }
+}
 @media (max-width: 560px) {
   .rn { height: 320px; border-radius: 22px; }
   .rn-hud { left: 12px; right: 12px; top: 10px; gap: 10px; }
   .rn-hearts svg { width: 18px; height: 18px; }
   .rn-stage { font-size: 11px; }
   .rn-coins { font-size: 13px; padding: 5px 9px; }
-  .rn-panel { padding: 18px 16px; border-radius: 20px; }
-  .rn-panel p { font-size: 14px; }
-  .rn-btns .btn { flex: 1 1 100%; justify-content: center; }
+  .rn-screen { padding: 10px; }
+  .rn-panel { padding: 16px 14px; border-radius: 20px; }
+  .rn-panel h3 { margin-bottom: 8px; }
+  .rn-panel p { font-size: 14px; line-height: 1.4; }
+  .rn-panel .rn-note { display: none; }
+  .rn-btns { margin-top: 14px; }
+  .rn-btns .btn { flex: 1 1 auto; justify-content: center; padding: 12px 14px; font-size: 15px; }
   .rn-banner span { font-size: 13px; }
+  .rn-panel p.rn-term { font-size: 12px; margin-bottom: 8px; }
 }
 
 /* ---------- experience teaser (main page) ---------- */
@@ -803,6 +819,7 @@ body { --cut: var(--paper); }
 
 @media (prefers-reduced-motion: reduce) {
   .bld-flow::after { display: none; }
+  .rn-panel p.rn-term::before { animation: none; }
   html { scroll-behavior: auto; }
   .marquee-track { animation: none; flex-wrap: wrap; width: auto; }
   .marquee-set[aria-hidden] { display: none; }
