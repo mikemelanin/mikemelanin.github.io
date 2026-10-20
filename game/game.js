@@ -2,11 +2,15 @@
 // Герой – Clawd, пиксельный маскот Claude Code, в роли AI-пилота. 4 этапа проекта, в финале босс – инвесткомитет.
 // Прыгает через согласования, ИБ и legacy, пригибается от галлюцинаций и дедлайнов, собирает ₽ эффекта и бонусы:
 // Evals – щит, MCP – магнит для ₽, ultrathink – неуязвимость, Vibe coding – радуга и ₽ x2. Тексты и баланс – в STAGES, KINDS, ENDS, QUIPS, BOSS.
+// По кнопке Играть подгружается слой эффектов на Phaser (game/fx.js): свечение, частицы, тряска. Без него игра идёт как есть.
 (() => {
   const root = document.querySelector('.rn');
   if (!root) return;
   const cv = root.querySelector('canvas');
-  const ctx = cv.getContext('2d');
+  const base = cv.getContext('2d');
+  // ctx – куда рисуем сейчас: кадр или canvas свечения (G = true), который fx.js размывает поверх кадра
+  let ctx = base, G = false;
+  const gcv = document.createElement('canvas'), gctx = gcv.getContext('2d');
   const hud = root.querySelector('.rn-hud');
   const screen = root.querySelector('.rn-screen');
   const banner = root.querySelector('.rn-banner');
@@ -95,7 +99,7 @@
     C = { paper: v('--paper'), card: v('--card'), ink: v('--ink'), muted: v('--muted'), line: v('--line'), chip: v('--chip'), fig: v('--figure'), blue: v('--blue'), dark: dm.matches };
   };
   readColors();
-  dm.addEventListener?.('change', () => { readColors(); draw(); });
+  dm.addEventListener?.('change', () => { readColors(); fx?.theme(C.dark); draw(); });
 
   // ---------- sound ----------
   let ac = null, muted = false;
@@ -221,7 +225,7 @@
   });
 
   // ---------- size ----------
-  let W = 800, k = 1, px = 90;
+  let W = 800, k = 1, px = 90, U = 1, GU = 1;
   const resize = () => {
     const r = cv.getBoundingClientRect();
     if (!r.width) return;
@@ -232,9 +236,31 @@
     px = Math.max(66, Math.min(150, W * .13));
     cv.width = Math.round(r.width * dpr);
     cv.height = Math.round(r.height * dpr);
-    ctx.setTransform(dpr * scale, 0, 0, dpr * scale, 0, 0);
+    U = dpr * scale;
+    // свечение рисуем в пониженном разрешении: его всё равно размывают
+    const gk = Math.min(.5, 900 / cv.width);
+    gcv.width = Math.round(cv.width * gk);
+    gcv.height = Math.round(cv.height * gk);
+    GU = U * gk;
+    fx?.resize(cv.width, cv.height, U, W, gcv.width, gcv.height);
+    base.setTransform(U, 0, 0, U, 0, 0);
     draw();
   };
+
+  // ---------- effects layer ----------
+  // Phaser (~280 КБ в сжатом виде) и fx.js грузятся, только когда игрок навёл на Играть или нажал её
+  let fx = null, fxLoad = null;
+  const script = src => new Promise((ok, no) => { const el = document.createElement('script'); el.src = src; el.onload = ok; el.onerror = no; document.head.append(el); });
+  const loadFx = () => {
+    if (still || fxLoad) return;
+    fxLoad = (window.Phaser ? Promise.resolve() : script('game/vendor/phaser-3.90.0.min.js'))
+      .then(() => window.MM_FX || script('game/fx.js?v=1'))
+      .then(() => window.MM_FX({ base: cv, glow: gcv, dark: C.dark }))
+      .then(api => { fx = api; root.classList.add('has-fx'); resize(); })
+      .catch(() => {});
+  };
+  // всплеск эффекта в точке экрана (логические координаты), если слой загружен
+  const fxb = (kind, x, y, color) => fx?.burst(kind, x, y, color);
 
   // ---------- state ----------
   let state = 'start';
@@ -400,6 +426,7 @@
   };
 
   const play = () => {
+    loadFx();
     reset();
     state = 'run';
     screen.hidden = true;
@@ -419,7 +446,7 @@
   const doJump = n => {
     p.vy = n === 1 ? JUMP : JUMP2; p.y = Math.max(p.y, .01); p.jumps = n; p.buf = 0;
     if (n === 1) SFX.jump();
-    else { SFX.jump2(); p.flip = 0; burst(dist, p.y, 6, [C.line, CLAWD], .5); }
+    else { SFX.jump2(); p.flip = 0; burst(dist, p.y, 6, [C.line, CLAWD], .5); fxb('jump', px, GY - p.y); }
   };
   const jump = () => {
     if (state !== 'run') return;
@@ -428,6 +455,8 @@
     else p.buf = .14;
   };
 
+  screen.addEventListener('pointerover', e => { if (e.target.closest('[data-act="play"]')) loadFx(); });
+  screen.addEventListener('focusin', e => { if (e.target.closest('[data-act="play"]')) loadFx(); });
   screen.addEventListener('click', e => {
     const b = e.target.closest('[data-act]');
     if (!b) return;
@@ -467,7 +496,7 @@
 
   const startBoss = () => {
     boss = { t: 0, hp: 1, v: speedAt(TOTAL - 1), throwIn: 1.6, argIn: 2.2, warn: 0, seat: 1, low: true, approved: 0, out: 0, said: null };
-    paintStage(); showBanner(); SFX.boss(); quip('boss', true);
+    paintStage(); showBanner(); SFX.boss(); quip('boss', true); fxb('boss');
     music.stop(); music.play('boss');
   };
   const throwShot = () => {
@@ -481,7 +510,7 @@
     obs.forEach(o => { if (o.shot && !o.hit) { o.hit = true; o.kvx = 300; o.kvh = 500; o.kx = 0; o.kh = 0; o.kr = 0; } });
     items = items.filter(it => it.kind !== 'arg');
     burst(dist + seatX(1) - px, 120, 40, [GREEN, LIVE, '#fff', GOLD], 1.3);
-    SFX.approve(); quip('approve', true); music.stop();
+    SFX.approve(); quip('approve', true); music.stop(); fxb('approve');
     shake = .2; flash = .15;
   };
   const beginFinish = () => {
@@ -524,18 +553,18 @@
     if (ultra > 0) {
       coins += 2; smashed++; paintCoins();
       burst(ox, oh, 18, FIRE, 1.2); say('+2 млн ₽', GREEN, ox, oh + 30, 13);
-      SFX.smash(); shake = .12;
+      SFX.smash(); shake = .12; fxb('smash', ox - dist + px, GY - oh, '#FFA552');
       return;
     }
     if (shield) {
       shield = false; inv = .8;
       burst(ox, oh, 16, [C.fig, '#fff', LIVE]);
-      SFX.save(); quip('save', true);
+      SFX.save(); quip('save', true); fxb('save', px, GY - p.y - 24, C.fig);
       return;
     }
     hearts--; inv = 1.5; shake = .35; hitstop = .07; lastKind = o.kind; combo = 0;
     burst(dist, 30, 14, [RED, CLAWD, '#fff']);
-    say('−доверие', RED); SFX.hit(); quip('hit', true);
+    say('−доверие', RED); SFX.hit(); quip('hit', true); fxb('hit', px + 12, GY - p.y - 22, '#FFFFFF');
     paintHearts(true);
     if (hearts <= 0) {
       state = 'over'; setRunning(false); music.stop(); SFX.lose();
@@ -545,22 +574,23 @@
 
   const collect = it => {
     it.got = true;
+    const ix = it.x - dist + px, iy = GY - it.h;
     if (it.kind === 'coin') {
       combo = comboT > 0 ? combo + 1 : 1; comboT = .9; bestCombo = Math.max(bestCombo, combo);
-      coins += vibe > 0 ? 2 : 1; SFX.coin(combo); burst(it.x, it.h, 5, vibe > 0 ? RAINBOW : [GREEN, LIVE], .5);
+      coins += vibe > 0 ? 2 : 1; SFX.coin(combo); burst(it.x, it.h, 5, vibe > 0 ? RAINBOW : [GREEN, LIVE], .5); fxb('coin', ix, iy);
       if (combo >= 3) say(`x${combo}`, GREEN, it.x, it.h + 18, 12 + Math.min(combo, 10));
       if (combo % 10 === 0) { coins += 5; say('Комбо! +5 млн ₽', GREEN, dist + 10, 120, 15); }
       paintCoins();
-    } else if (it.kind === 'shield') { shield = true; SFX.up(); say('Evals: щит от удара', C.fig); }
-    else if (it.kind === 'magnet') { mag = 7; SFX.mag(); say('MCP: подключил данные', MCP); }
+    } else if (it.kind === 'shield') { shield = true; SFX.up(); say('Evals: щит от удара', C.fig); fxb('power', ix, iy, C.fig); }
+    else if (it.kind === 'magnet') { mag = 7; SFX.mag(); say('MCP: подключил данные', MCP); fxb('power', ix, iy, MCP); }
     else if (it.kind === 'vibe') {
-      vibe = 6; vibes++; SFX.vibe(); say('Vibe coding: ₽ x2', RAINBOW[5]);
+      vibe = 6; vibes++; SFX.vibe(); say('Vibe coding: ₽ x2', RAINBOW[5]); fxb('vibe', ix, iy);
       bubble = { text: 'Вайбкодим!', t: 0, dur: 1.6, spin: false };
-    } else if (it.kind === 'ultra') { ultra = 5.5; thinks++; flash = .18; trail = []; SFX.ultra(); music.rate(1.15); say('ultrathink: неуязвимость', CLAWD); bubble = null; }
+    } else if (it.kind === 'ultra') { ultra = 5.5; thinks++; flash = .18; trail = []; SFX.ultra(); music.rate(1.15); say('ultrathink: неуязвимость', CLAWD); bubble = null; fxb('ultra', px, GY - p.y - 24); }
     else if (it.kind === 'arg') {
       boss.hp = Math.max(0, boss.hp - .14); coins += 2; paintCoins();
-      burst(it.x, it.h, 12, [GREEN, LIVE, '#fff'], .8); say(`${it.text} ✓`, GREEN, it.x, it.h + 26, 13); SFX.arg();
-    } else { hearts = Math.min(3, hearts + 1); paintHearts(); SFX.up(); say('+доверие: нашёлся спонсор', GREEN); }
+      burst(it.x, it.h, 12, [GREEN, LIVE, '#fff'], .8); say(`${it.text} ✓`, GREEN, it.x, it.h + 26, 13); SFX.arg(); fxb('arg', ix, iy);
+    } else { hearts = Math.min(3, hearts + 1); paintHearts(); SFX.up(); say('+доверие: нашёлся спонсор', GREEN); fxb('power', ix, iy, RED); }
   };
 
   const stepParts = dt => {
@@ -588,7 +618,7 @@
     if (!boss) {
       const s = stageAt(dist);
       if (s !== stageIdx && state === 'run') {
-        stageIdx = s; paintStage(); showBanner(); SFX.stage(); quip('stage', true);
+        stageIdx = s; paintStage(); showBanner(); SFX.stage(); quip('stage', true); fxb('stage');
         burst(dist + 60, 140, 24, [C.fig, LIVE, GOLD, CLAWD], 1);
       }
     }
@@ -629,7 +659,7 @@
     }
     if (boss) stepBoss(dt);
     if (state === 'finish' && fv <= 0) {
-      if (!finT) { SFX.win(); quip('win', true); burst(gate, 150, 50, [C.fig, LIVE, RED, GOLD, GREEN, CLAWD], 1.4); }
+      if (!finT) { SFX.win(); quip('win', true); burst(gate, 150, 50, [C.fig, LIVE, RED, GOLD, GREEN, CLAWD], 1.4); fxb('win'); }
       finT += dt;
       if (finT > 1.3) { state = 'win'; win(); }
     }
@@ -682,6 +712,7 @@
     if (state === 'win') {
       p.y = Math.abs(Math.sin(t * 5)) * 26;
       if (!still && Math.random() < dt * 2.5) burst(gate + rand(-60, 60), rand(120, 180), 12, [C.fig, LIVE, RED, GOLD, GREEN, CLAWD], .9);
+      if (Math.random() < dt * .8) fxb('firework', rand(.08, .92) * W, rand(40, 150));
     }
     blinkTick(dt);
     stepParts(dt);
@@ -772,8 +803,10 @@
     return i ? NIGHT[i - 1] + (NIGHT[i] - NIGHT[i - 1]) * q : NIGHT[0];
   };
 
+  // в проходе свечения (G) рисуем только то, что светится: неон, экраны, диоды
   const prop = (look, x, label, i) => {
     if (look === 'office') {
+      if (G) return;
       ctx.strokeStyle = C.line; ctx.lineWidth = 4; line(x, GY, x, GY - 92);
       ctx.fillStyle = C.card; ctx.strokeStyle = C.line; ctx.lineWidth = 2;
       rr(x - 58, GY - 134, 116, 44, 10); ctx.fill(); ctx.stroke();
@@ -783,31 +816,33 @@
       ctx.restore();
     } else if (look === 'servers') {
       ctx.fillStyle = C.chip; ctx.strokeStyle = C.line; ctx.lineWidth = 2;
-      rr(x - 30, GY - 124, 60, 124, 6); ctx.fill(); ctx.stroke();
+      if (!G) { rr(x - 30, GY - 124, 60, 124, 6); ctx.fill(); ctx.stroke(); }
       for (let r = 0; r < 7; r++) {
         const y = GY - 114 + r * 16;
-        ctx.fillStyle = C.card; rr(x - 22, y, 44, 11, 2); ctx.fill();
+        if (!G) { ctx.fillStyle = C.card; rr(x - 22, y, 44, 11, 2); ctx.fill(); }
         for (let l = 0; l < 3; l++) { ctx.fillStyle = Math.floor(t * 4 + r * 3 + l * 5 + i) % 4 ? LIVE : C.fig; dot(x - 15 + l * 6, y + 5.5, 1.8); }
-        ctx.fillStyle = C.line; ctx.fillRect(x + 2, y + 4, 14, 3);
+        if (!G) { ctx.fillStyle = C.line; ctx.fillRect(x + 2, y + 4, 14, 3); }
       }
-      pill(label, x, GY - 130, C.fig, '#fff');
+      if (!G) pill(label, x, GY - 130, C.fig, '#fff');
     } else if (look === 'lab') {
-      ctx.fillStyle = C.line; ctx.fillRect(x - 3, GY - 70, 6, 70); rr(x - 22, GY - 8, 44, 8, 3); ctx.fill();
-      ctx.fillStyle = SCREEN; ctx.strokeStyle = C.line; ctx.lineWidth = 3;
-      rr(x - 58, GY - 142, 116, 74, 8); ctx.fill(); ctx.stroke();
+      if (!G) {
+        ctx.fillStyle = C.line; ctx.fillRect(x - 3, GY - 70, 6, 70); rr(x - 22, GY - 8, 44, 8, 3); ctx.fill();
+        ctx.fillStyle = SCREEN; ctx.strokeStyle = C.line; ctx.lineWidth = 3;
+        rr(x - 58, GY - 142, 116, 74, 8); ctx.fill(); ctx.stroke();
+      }
       ctx.strokeStyle = LIVE; ctx.lineWidth = 2; ctx.beginPath();
       for (let j = 0; j <= 8; j++) ctx.lineTo(x - 46 + j * 11.5, GY - 82 - j * 4 - Math.sin(j * 1.7 + i) * 6);
       ctx.stroke();
       text(label, x - 48, GY - 128, MONO(11), LIVE, 'left');
     } else {
       const neon = i % 2 ? '#FF7AC6' : '#6DC8FF';
-      ctx.strokeStyle = C.line; ctx.lineWidth = 4; line(x, GY, x, GY - 98);
+      ctx.strokeStyle = C.line; ctx.lineWidth = 4; if (!G) line(x, GY, x, GY - 98);
       ctx.font = DISPLAY(12);
       const w = ctx.measureText(label).width + 28;
-      ctx.fillStyle = SCREEN; rr(x - w / 2, GY - 140, w, 42, 10); ctx.fill();
+      ctx.fillStyle = SCREEN; rr(x - w / 2, GY - 140, w, 42, 10); if (!G) ctx.fill();
       ctx.strokeStyle = neon; ctx.lineWidth = 1.5; ctx.stroke();
       ctx.save();
-      if (!still) { ctx.shadowColor = neon; ctx.shadowBlur = 12; }
+      if (!still && !fx) { ctx.shadowColor = neon; ctx.shadowBlur = 12; }
       ctx.globalAlpha = Math.sin(t * 13 + i * 3) > .96 ? .4 : 1;
       text(label, x, GY - 119, DISPLAY(12), neon);
       ctx.restore();
@@ -816,6 +851,7 @@
 
   const scene = () => {
     const [sr, sg, sb] = skyNow(), night = nightNow();
+    if (!G) {
     ctx.fillStyle = C.card; ctx.fillRect(0, 0, W, LH);
     let g = ctx.createLinearGradient(0, 0, 0, GY);
     g.addColorStop(0, `rgba(${sr},${sg},${sb},${C.dark ? .2 : .14})`);
@@ -825,6 +861,7 @@
     g.addColorStop(0, 'rgba(0,0,0,0)');
     g.addColorStop(1, C.paper);
     ctx.fillStyle = g; ctx.fillRect(0, GY - 160, W, 160);
+    }
 
     // звёзды к ночи
     if (C.dark && night > 0) {
@@ -853,7 +890,7 @@
 
     // облака
     ctx.fillStyle = C.paper; ctx.globalAlpha = C.dark ? .75 : 1;
-    tile(CLOUDS.period, .08, ox => CLOUDS.list.forEach(c => {
+    if (!G) tile(CLOUDS.period, .08, ox => CLOUDS.list.forEach(c => {
       const x = ox + c.x;
       if (x < -120 || x > W + 120) return;
       // одним контуром, чтобы полупрозрачное облако не темнело на стыках
@@ -867,7 +904,7 @@
     // город на горизонте: башни крупного бизнеса, ночью в окнах свет
     ctx.save();
     ctx.globalAlpha = .09; ctx.fillStyle = C.fig;
-    tile(CITY.period, .15, ox => CITY.list.forEach(b => {
+    if (!G) tile(CITY.period, .15, ox => CITY.list.forEach(b => {
       const x = ox + b.x;
       if (x + b.w < 0 || x > W) return;
       ctx.fillRect(x, GY - b.h, b.w, b.h);
@@ -878,6 +915,7 @@
       let n = 0;
       for (let wy = GY - b.h + 10; wy < GY - 14; wy += 16) for (let wx = x + 8; wx < x + b.w - 10; wx += 14) {
         const lit = night > .3 && (bi * 7 + n++ * 13) % 5 === 0;
+        if (G && !lit) continue;
         ctx.fillStyle = lit ? GOLD : C.fig;
         ctx.globalAlpha = lit ? .45 * night : .12;
         ctx.fillRect(wx, wy, 6, 7);
@@ -895,14 +933,16 @@
     });
 
     // земля
-    ctx.fillStyle = C.paper; ctx.fillRect(0, GY, W, LH - GY);
-    ctx.strokeStyle = C.ink; ctx.lineWidth = 2; line(0, GY + 1, W, GY + 1);
-    ctx.strokeStyle = C.line; ctx.lineWidth = 2;
-    for (let x = -(dist % 36); x < W; x += 36) line(x, GY + 16, x + 12, GY + 16);
-    for (let x = -((dist + 18) % 54); x < W; x += 54) line(x, GY + 34, x + 20, GY + 34);
+    if (!G) {
+      ctx.fillStyle = C.paper; ctx.fillRect(0, GY, W, LH - GY);
+      ctx.strokeStyle = C.ink; ctx.lineWidth = 2; line(0, GY + 1, W, GY + 1);
+      ctx.strokeStyle = C.line; ctx.lineWidth = 2;
+      for (let x = -(dist % 36); x < W; x += 36) line(x, GY + 16, x + 12, GY + 16);
+      for (let x = -((dist + 18) % 54); x < W; x += 54) line(x, GY + 34, x + 20, GY + 34);
+    }
 
     // вехи этапов и финала
-    [...STARTS.slice(1), TOTAL].forEach((s0, i) => {
+    if (!G) [...STARTS.slice(1), TOTAL].forEach((s0, i) => {
       const x = s0 - dist + px;
       if (x < -100 || x > W + 100) return;
       const name = STAGES[i + 1]?.name || 'Комитет';
@@ -917,12 +957,11 @@
     const gx = gate - dist + px;
     if (gate && gx > -140 && gx < W + 140) {
       ctx.fillStyle = C.ink;
-      rr(gx - 64, GY - 128, 34, 128, 5); ctx.fill();
-      rr(gx + 30, GY - 128, 34, 128, 5); ctx.fill();
+      if (!G) { rr(gx - 64, GY - 128, 34, 128, 5); ctx.fill(); rr(gx + 30, GY - 128, 34, 128, 5); ctx.fill(); }
       for (let r = 0; r < 7; r++) for (const side of [-56, 38]) {
         ctx.fillStyle = (Math.floor(t * 6) + r + side) % 3 ? LIVE : '#2b2f5a';
         dot(gx + side, GY - 116 + r * 16, 2.5);
-        ctx.fillStyle = '#2b2f5a'; ctx.fillRect(gx + side + 6, GY - 118 + r * 16, 12, 4);
+        if (!G) { ctx.fillStyle = '#2b2f5a'; ctx.fillRect(gx + side + 6, GY - 118 + r * 16, 12, 4); }
       }
       ctx.fillStyle = C.blue; rr(gx - 76, GY - 166, 152, 32, 9); ctx.fill();
       text('PRODUCTION', gx, GY - 150, DISPLAY(13), '#fff');
@@ -931,6 +970,7 @@
   };
 
   const drawObs = o => {
+    if (G && o.kind !== 'ghost' && o.kind !== 'question') return;
     const b = o.air + (o.bob ? Math.sin(t * 4 + o.seed) * 4 : 0);
     const sx = o.x - dist + px;
     if (sx > W + 80 || sx < -200) return;
@@ -1024,7 +1064,7 @@
         break;
       }
     }
-    if (!o.hit && !o.shot) pill(KINDS[o.kind].label, x + w / 2, top - 7);
+    if (!o.hit && !o.shot && !G) pill(KINDS[o.kind].label, x + w / 2, top - 7);
     ctx.restore();
   };
 
@@ -1057,7 +1097,7 @@
       pill('Vibe coding', x, y - 15, TERM, '#fff');
     } else if (it.kind === 'ultra') {
       ctx.save();
-      if (!still) { ctx.shadowColor = CLAWD; ctx.shadowBlur = 14; }
+      if (!still && !fx) { ctx.shadowColor = CLAWD; ctx.shadowBlur = 14; }
       spark(x, y, 15, t * 2, CLAWD);
       ctx.restore();
       ctx.font = FONT(700, 11);
@@ -1092,6 +1132,7 @@
     const mad = !boss.approved;
     ctx.save();
     ctx.translate(bx, GY); ctx.scale(s, s);
+    if (!G) {
     ctx.fillStyle = `rgba(229,72,77,${mad ? .08 : .03})`;
     poly(-30, -300, 30, -300, 130, 0, -130, 0); ctx.fill();
     for (let i = 0; i < 3; i++) {
@@ -1112,6 +1153,7 @@
     ctx.fillStyle = '#2E3270'; rr(-90, -50, 180, 7, 4); ctx.fill();
     ctx.fillStyle = GOLD; rr(-62, -36, 124, 20, 6); ctx.fill();
     text('ИНВЕСТКОМИТЕТ', 0, -25.5, FONT(800, 10), SCREEN);
+    }
     if (!mad && boss.approved < 2.5) {
       ctx.save(); ctx.translate(0, -112); ctx.rotate(-.16);
       const pop = 1 + Math.max(0, .25 - boss.approved) * 4;
@@ -1121,7 +1163,7 @@
       ctx.restore();
     }
     ctx.restore();
-    if (!mad) return;
+    if (!mad || G) return;
     // шкала и вопросы – без масштаба, чтобы текст не мельчал на телефоне
     const head = GY - 128 * s, cx = Math.min(bx, W - 76);
     text('Скепсис комитета', cx, head - 62, FONT(700, 11), C.ink);
@@ -1180,9 +1222,11 @@
     const hurt = state === 'over' || (run && inv > 1.1 && ultra <= 0);
     const happy = state === 'win' || (state === 'finish' && fv <= 1) || !!(boss && boss.approved);
     // тень
-    ctx.fillStyle = C.ink; ctx.globalAlpha = .13 * Math.max(.3, 1 - h / 200);
-    ctx.beginPath(); ctx.ellipse(x, GY + 3, 30 * Math.max(.5, 1 - h / 300), 4, 0, 0, TAU); ctx.fill();
-    ctx.globalAlpha = 1;
+    if (!G) {
+      ctx.fillStyle = C.ink; ctx.globalAlpha = .13 * Math.max(.3, 1 - h / 200);
+      ctx.beginPath(); ctx.ellipse(x, GY + 3, 30 * Math.max(.5, 1 - h / 300), 4, 0, 0, TAU); ctx.fill();
+      ctx.globalAlpha = 1;
+    }
     // Vibe coding: радуга, которая тянется за Clawd по всей траектории
     if (vibe > 0 && trail.length > 1) {
       ctx.globalAlpha = Math.min(1, vibe) * .9;
@@ -1204,12 +1248,12 @@
         const x1 = a.d - dist + x - 20, x2 = z.d - dist + x - 20;
         if (x1 < -10 || vibe > 0) break;
         const th = 24 * (1 - q) * (still ? 1 : .8 + .2 * Math.sin(t * 40 + i)), cy = GY - a.y - (a.duck ? 12 : 24);
-        ctx.globalAlpha = fade * (1 - q) * .9;
+        ctx.globalAlpha = fade * (1 - q) * (G ? .45 : .9);
         ctx.fillStyle = FIRE[2 + Math.min(2, Math.floor(q * 3))];
         ctx.fillRect(x2, cy - th / 2, x1 - x2 + 1, th);
         if (q < .55) { ctx.fillStyle = FIRE[q < .25 ? 0 : 1]; ctx.fillRect(x2, cy - th * .2, x1 - x2 + 1, th * .4); }
       }
-      for (let i = n - 12; i > 0; i -= 12) {
+      for (let i = n - 12; i > 0 && !G; i -= 12) {
         const a = trail[i], q = (n - 1 - i) / n;
         ctx.globalAlpha = fade * .35 * (1 - q);
         clawd(a.d - dist + x, GY - a.y, { sy: a.duck ? .5 : 1, sx: a.duck ? 1.14 : 1, tint: FIRE[Math.min(4, 1 + Math.floor(q * 4))] });
@@ -1217,7 +1261,7 @@
       ctx.globalAlpha = 1;
     }
     // линии скорости
-    if (moving && !still && !duck && !ultra) {
+    if (moving && !still && !duck && !ultra && !G) {
       ctx.strokeStyle = CLAWD; ctx.lineCap = 'round'; ctx.lineWidth = 2;
       [[-46, 14, 18], [-56, 26, 26], [-44, 38, 14]].forEach(([dx, dy, len], i) => {
         const q = (t * 3 + i * .37) % 1;
@@ -1233,13 +1277,13 @@
     if (p.sq > 0 && !duck) { sx += p.sq; sy -= p.sq; }
     const step = moving && !air ? (Math.sin(p.phase) > 0 ? 0 : 1) : null;
     const bob = moving && !air ? (Math.sin(p.phase * 2) > 0 ? -1.2 : 0) : state === 'start' || state === 'pause' ? (Math.sin(t * 2.4) > .6 ? -1 : 0) : 0;
-    clawd(x, GY - h, {
+    if (!G) clawd(x, GY - h, {
       sx, sy, bob, step, air,
       rot: state === 'over' ? .12 : p.flip < TAU ? p.flip : 0,
       arms: air || happy ? 'up' : state === 'start' ? 'wave' : 'down',
       swing: step == null ? 0 : step ? .5 : -.5,
       eyes: hurt ? 'hurt' : happy ? 'happy' : p.blink > 0 || duck ? 'blink' : 'open',
-      glow: ultra > 0 && !still ? (Math.sin(t * 18) > 0 ? FIRE[1] : FIRE[2]) : null
+      glow: ultra > 0 && !still && !fx ? (Math.sin(t * 18) > 0 ? FIRE[1] : FIRE[2]) : null
     });
     ctx.globalAlpha = 1;
     const cy = GY - h - (duck ? 12 : 24);
@@ -1303,15 +1347,21 @@
     if (combo >= 3) chip(`Комбо x${combo}`, comboT / .9, GREEN);
   };
 
-  const draw = () => {
-    if (!C.card) return;
+  const paint = () => {
     ctx.save();
-    if (shake > 0 && !still) ctx.translate((Math.random() - .5) * 10 * shake / .35, (Math.random() - .5) * 6 * shake / .35);
+    if (shake > 0 && !still && !fx) ctx.translate((Math.random() - .5) * 10 * shake / .35, (Math.random() - .5) * 6 * shake / .35);
     scene();
     drawBoss();
     items.forEach(drawItem);
     obs.forEach(drawObs);
     drawBot();
+    drawParts();
+    drawBubble();
+    drawPower();
+    if (flash > 0 && !still) { ctx.fillStyle = '#fff'; ctx.globalAlpha = flash * 2; ctx.fillRect(0, 0, W, LH); ctx.globalAlpha = 1; }
+    ctx.restore();
+  };
+  const drawParts = () => {
     parts.forEach(q => {
       ctx.save();
       ctx.globalAlpha = Math.max(0, 1 - q.t / q.life);
@@ -1325,10 +1375,25 @@
       text(q.text, q.x - dist + px, GY - q.h, FONT(700, q.size), q.color);
     });
     ctx.globalAlpha = 1;
-    drawBubble();
-    drawPower();
-    if (flash > 0 && !still) { ctx.fillStyle = '#fff'; ctx.globalAlpha = flash * 2; ctx.fillRect(0, 0, W, LH); ctx.globalAlpha = 1; }
-    ctx.restore();
+  };
+  // второй проход: только светящиеся детали, в пониженном разрешении
+  const paintGlow = () => {
+    gctx.setTransform(1, 0, 0, 1, 0, 0);
+    gctx.clearRect(0, 0, gcv.width, gcv.height);
+    gctx.setTransform(GU, 0, 0, GU, 0, 0);
+    ctx = gctx; G = true;
+    try {
+      scene(); drawBoss(); items.forEach(drawItem); obs.forEach(drawObs); drawBot(); drawParts();
+    } finally { ctx = base; G = false; }
+  };
+  // dt > 0 – кадр цикла: слой эффектов продвигает частицы; dt = 0 – просто перерисовать
+  const draw = (dt = 0) => {
+    if (!C.card) return;
+    paint();
+    if (!fx) return;
+    paintGlow();
+    const run = state === 'run' || state === 'finish';
+    fx.step(performance.now(), dt, { dist, hx: px - 18, hy: GY - p.y - (p.duck && state === 'run' ? 12 : 24), ultra: run && ultra > 0, vibe: run && vibe > 0, motes: state !== 'over' });
   };
 
   // ---------- loop ----------
@@ -1340,7 +1405,7 @@
     const dt = Math.min(.033, (now - last) / 1000);
     last = now;
     if (active()) update(dt); else idle(dt);
-    draw();
+    draw(dt);
     if (wants()) raf = requestAnimationFrame(loop);
   };
   function kick() {
@@ -1360,7 +1425,7 @@
 
   if ('ResizeObserver' in window) new ResizeObserver(resize).observe(cv); else addEventListener('resize', resize);
   resize();
-  if (document.fonts) document.fonts.ready.then(draw);
+  if (document.fonts) document.fonts.ready.then(() => draw());
   intro();
   kick();
 })();
