@@ -4,7 +4,7 @@
 // с яркими деталями (неон, огонь, радуга, ₽) размывается и складывается поверх – так получается свечение.
 // Координаты в вызовах – логические единицы игры (высота сцены 320): эмиттеры масштабированы на unit.
 // Phaser не крутит свой цикл: кадр рендерится из цикла игры через step(), чтобы эффекты шли синхронно.
-window.MM_FX = ({ base, glow, dark }) => new Promise((resolve, reject) => {
+window.MM_FX = ({ base, glow }) => new Promise((resolve, reject) => {
   const P = window.Phaser;
   const hex = c => parseInt(c.slice(1), 16);
   const FIRE = ['#FFF3B0', '#FFD166', '#FFA552', '#D97757', '#E5484D'].map(hex);
@@ -54,19 +54,19 @@ window.MM_FX = ({ base, glow, dark }) => new Promise((resolve, reject) => {
       const glowTex = this.textures.addCanvas('glow', glow);
       const frame = this.add.image(0, 0, 'frame').setOrigin(0);
       // свечение в два слоя: плотное у самих деталей и широкий мягкий ореол
-      const halos = [1.2, 3.2].map(s => {
-        const im = this.add.image(0, 0, 'glow').setOrigin(0).setBlendMode(P.BlendModes.ADD);
+      const halos = [[1.2, .7], [3.2, .55]].map(([s, a]) => {
+        const im = this.add.image(0, 0, 'glow').setOrigin(0).setBlendMode(P.BlendModes.ADD).setAlpha(a);
         im.preFX.padding = 8;
         im.preFX.addBlur(1, 2, 2, s, 0xffffff, 4);
         return im;
       });
       const redout = this.add.rectangle(0, 0, 10, 10, RED).setOrigin(0).setAlpha(0);
 
-      // world – частицы привязаны к миру и уезжают влево вместе с препятствиями
+      // world – частицы привязаны к миру и уезжают влево вместе с препятствиями; glowy – светятся (складываются цветом)
       const emitters = [];
       const em = (tex, cfg, world = false, glowy = true) => {
-        const e = this.add.particles(0, 0, tex, { emitting: false, ...cfg });
-        Object.assign(e, { world, glowy });
+        const e = this.add.particles(0, 0, tex, { emitting: false, blendMode: glowy ? 'ADD' : 'NORMAL', ...cfg });
+        e.world = world;
         emitters.push(e);
         return e;
       };
@@ -80,7 +80,7 @@ window.MM_FX = ({ base, glow, dark }) => new Promise((resolve, reject) => {
         ember: em('dot', { frequency: 22, speedX: { min: -420, max: -200 }, speedY: { min: -60, max: 60 }, lifespan: { min: 200, max: 420 }, scale: { start: .55, end: 0 }, alpha: { start: .8, end: 0 }, tint: FIRE.slice(1) }),
         vibe: em('spark', { frequency: 30, speedX: { min: -320, max: -160 }, speedY: { min: -80, max: 80 }, lifespan: { min: 350, max: 650 }, scale: { start: .45, end: 0 }, rotate: { min: 0, max: 90 }, tint: RAINBOW })
       };
-      // пылинки и светлячки в воздухе, только в тёмной теме
+      // пылинки и светлячки в воздухе
       const zone = new P.Geom.Rectangle(0, 16, 800, 230);
       E.motes = em('dot', {
         frequency: 240, lifespan: { min: 3500, max: 6000 }, speedX: { min: -36, max: -8 }, speedY: { min: -10, max: 6 },
@@ -90,23 +90,12 @@ window.MM_FX = ({ base, glow, dark }) => new Promise((resolve, reject) => {
       });
 
       const cam = this.cameras.main;
-      const vignette = cam.postFX.addVignette(.5, .5, .92, .22);
+      cam.postFX.addVignette(.5, .5, .92, .22);
       const barrel = cam.postFX.addBarrel(1);
-
-      const setTheme = d => {
-        dark = d;
-        halos[0].setAlpha(d ? .7 : .4);
-        halos[1].setAlpha(d ? .55 : .28);
-        vignette.active = d;
-        emitters.forEach(e => e.setBlendMode(d && e.glowy ? P.BlendModes.ADD : P.BlendModes.NORMAL));
-        if (!d) E.motes.stop();
-      };
-      setTheme(dark);
 
       const at = (e, x, y, n) => e.emitParticleAt(x + (e.world ? dist : 0), y, n);
       const ring = (x, y, color, size = 1.6, ms = 380) => {
-        const r = this.add.image(x * unit, y * unit, 'ring').setTint(color).setScale(.1 * unit)
-          .setBlendMode(dark ? P.BlendModes.ADD : P.BlendModes.NORMAL);
+        const r = this.add.image(x * unit, y * unit, 'ring').setTint(color).setScale(.1 * unit).setBlendMode(P.BlendModes.ADD);
         this.tweens.add({ targets: r, scale: size * unit, alpha: 0, duration: ms, ease: 'Cubic.easeOut', onComplete: () => r.destroy() });
       };
       const punch = (amount, ms) => {
@@ -154,7 +143,6 @@ window.MM_FX = ({ base, glow, dark }) => new Promise((resolve, reject) => {
       const api = {
         canvas,
         burst,
-        theme: setTheme,
         // w, h – размер кадра в пикселях, u – пикселей на логическую единицу, lw – ширина сцены в логических единицах
         resize: (w, h, u, lw, gw, gh) => {
           unit = u; W = lw;
@@ -174,7 +162,7 @@ window.MM_FX = ({ base, glow, dark }) => new Promise((resolve, reject) => {
           const flow = (e, on) => { if (on !== e.emitting) on ? e.start() : e.stop(); e.particleX = s.hx; e.particleY = s.hy; };
           flow(E.ember, !!s.ultra);
           flow(E.vibe, !!s.vibe && !s.ultra);
-          if (dark && !!s.motes !== E.motes.emitting) s.motes ? E.motes.start() : E.motes.stop();
+          if (!!s.motes !== E.motes.emitting) s.motes ? E.motes.start() : E.motes.stop();
           frameTex.refresh();
           glowTex.refresh();
           this.game.step(now, Math.min(50, dt * 1000));

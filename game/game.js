@@ -90,16 +90,14 @@
     city: ['Claude Code', 'ultrathink', 'Evals > vibes', 'Ship it', '200K контекста', '/compact', 'MCP везде', 'AI в P&L']
   };
 
-  // ---------- colors follow the site theme ----------
+  // ---------- colors from the site palette ----------
   let C = {};
-  const dm = matchMedia('(prefers-color-scheme: dark)');
   const readColors = () => {
     const cs = getComputedStyle(document.documentElement);
     const v = n => cs.getPropertyValue(n).trim();
-    C = { paper: v('--paper'), card: v('--card'), ink: v('--ink'), muted: v('--muted'), line: v('--line'), chip: v('--chip'), fig: v('--figure'), blue: v('--blue'), dark: dm.matches };
+    C = { paper: v('--paper'), card: v('--card'), ink: v('--ink'), muted: v('--muted'), line: v('--line'), chip: v('--chip'), fig: v('--figure'), blue: v('--blue') };
   };
   readColors();
-  dm.addEventListener?.('change', () => { readColors(); fx?.theme(C.dark); draw(); });
 
   // ---------- sound ----------
   let ac = null, muted = false;
@@ -254,8 +252,8 @@
   const loadFx = () => {
     if (still || fxLoad) return;
     fxLoad = (window.Phaser ? Promise.resolve() : script('game/vendor/phaser-3.90.0.min.js'))
-      .then(() => window.MM_FX || script('game/fx.js?v=1'))
-      .then(() => window.MM_FX({ base: cv, glow: gcv, dark: C.dark }))
+      .then(() => window.MM_FX || script('game/fx.js?v=2'))
+      .then(() => window.MM_FX({ base: cv, glow: gcv }))
       .then(api => { fx = api; root.classList.add('has-fx'); resize(); })
       .catch(() => {});
   };
@@ -854,7 +852,7 @@
     if (!G) {
     ctx.fillStyle = C.card; ctx.fillRect(0, 0, W, LH);
     let g = ctx.createLinearGradient(0, 0, 0, GY);
-    g.addColorStop(0, `rgba(${sr},${sg},${sb},${C.dark ? .2 : .14})`);
+    g.addColorStop(0, `rgba(${sr},${sg},${sb},.2)`);
     g.addColorStop(1, `rgba(${sr},${sg},${sb},0)`);
     ctx.fillStyle = g; ctx.fillRect(0, 0, W, GY);
     g = ctx.createLinearGradient(0, GY - 160, 0, GY);
@@ -864,7 +862,7 @@
     }
 
     // звёзды к ночи
-    if (C.dark && night > 0) {
+    if (night > 0) {
       ctx.fillStyle = '#fff';
       STARS.forEach(s => {
         ctx.globalAlpha = night * s.a * (.6 + .4 * Math.sin(t * 2 + s.p));
@@ -876,20 +874,20 @@
     const pr = Math.min(1, dist / TOTAL), sunY = 100 + pr * 200;
     if (sunY < GY) {
       ctx.fillStyle = '#FFB36B';
-      ctx.globalAlpha = C.dark ? .18 : .3; dot(W * .78, sunY, 40);
-      ctx.globalAlpha = C.dark ? .35 : .55; dot(W * .78, sunY, 26);
+      ctx.globalAlpha = .18; dot(W * .78, sunY, 40);
+      ctx.globalAlpha = .35; dot(W * .78, sunY, 26);
     }
     if (pr > .55) {
       const q = Math.min(1, (pr - .55) / .3);
-      ctx.fillStyle = C.dark ? '#E8E6FF' : C.muted;
-      ctx.globalAlpha = (C.dark ? .55 : .22) * q; dot(W * .6, GY - 40 - q * 120, 17);
-      ctx.fillStyle = C.dark ? '#C9C6F0' : C.line; ctx.globalAlpha *= .6;
+      ctx.fillStyle = '#E8E6FF';
+      ctx.globalAlpha = .55 * q; dot(W * .6, GY - 40 - q * 120, 17);
+      ctx.fillStyle = '#C9C6F0'; ctx.globalAlpha *= .6;
       dot(W * .6 - 5, GY - 44 - q * 120, 3.5); dot(W * .6 + 6, GY - 36 - q * 120, 2.5);
     }
     ctx.globalAlpha = 1;
 
     // облака
-    ctx.fillStyle = C.paper; ctx.globalAlpha = C.dark ? .75 : 1;
+    ctx.fillStyle = C.paper; ctx.globalAlpha = .75;
     if (!G) tile(CLOUDS.period, .08, ox => CLOUDS.list.forEach(c => {
       const x = ox + c.x;
       if (x < -120 || x > W + 120) return;

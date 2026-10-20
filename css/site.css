@@ -4,31 +4,19 @@
   --on-blue: #FFFFFF;
   --on-blue-soft: rgba(255,255,255,.74);
   --on-blue-line: rgba(255,255,255,.22);
-  --paper: #F3F4F8;
-  --card: #FFFFFF;
-  --ink: #0A0C26;
-  --muted: #595E7C;
-  --line: #DADCE8;
-  --chip: #E8EAF4;
-  --figure: #2433F2;
+  --paper: #080A1E;
+  --card: #10133A;
+  --ink: #EEF0FF;
+  --muted: #A0A6CC;
+  --line: #23275A;
+  --chip: #181C4A;
+  --figure: #8E98FF;
   --display: 'Unbounded', 'Arial Black', system-ui, sans-serif;
   --text: 'Onest', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --wrap: 1240px;
   --gutter: clamp(16px, 4vw, 48px);
   --bar: 72px;
-  color-scheme: light;
-}
-@media (prefers-color-scheme: dark) {
-  :root {
-    --paper: #080A1E;
-    --card: #10133A;
-    --ink: #EEF0FF;
-    --muted: #A0A6CC;
-    --line: #23275A;
-    --chip: #181C4A;
-    --figure: #8E98FF;
-    color-scheme: dark;
-  }
+  color-scheme: dark;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -423,8 +411,7 @@ body { --cut: var(--paper); }
 .job-co .logo .slim { height: 19px; }
 .logo .xslim { height: 19px; }
 .job-co .logo .xslim { height: 15px; }
-.edu-png { height: 26px; width: auto; filter: brightness(0); }
-@media (prefers-color-scheme: dark) { .edu-png { filter: brightness(0) invert(1); } }
+.edu-png { height: 26px; width: auto; filter: brightness(0) invert(1); }
 
 /* ---------- architecture diagram ---------- */
 .arch { display: grid; gap: 22px; align-content: start; }
