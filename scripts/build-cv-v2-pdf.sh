@@ -1,5 +1,5 @@
 #!/bin/zsh
-# Собирает из cv/v2/index.html два PDF: чистый и с красными сносками-правками.
+# Сначала python3 scripts/cv-v2/build.py (шаблон scripts/cv-v2/template.html). Собирает из cv/v2/index.html два PDF: чистый и с красными сносками-правками.
 set -e
 cd "$(dirname "$0")/../cv/v2"
 TMP=$(mktemp -d)

@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Михаил Меланьин – CV v2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&family=Unbounded:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --surface: #EFEEF1;
+  --paper: #FFFFFF;
+  --card: #F5F5F6;
+  --ink: #0A0A0B;
+  --muted: #5E5E63;
+  --line: #E1E1E4;
+  --chip: #ECECEF;
+  --display: 'Unbounded', 'Arial Black', system-ui, sans-serif;
+  --text: 'Onest', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  color-scheme: light;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { background: var(--surface); }
+body {
+  font-family: var(--text);
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--ink);
+  background: var(--surface);
+  -webkit-font-smoothing: antialiased;
+  padding: 32px 16px 64px;
+}
+a { color: inherit; }
+img { display: block; max-width: 100%; }
+
+.bar { max-width: 860px; margin: 0 auto 16px; display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between; font-size: 13px; color: var(--muted); }
+.bar-links { display: flex; flex-wrap: wrap; gap: 8px; }
+.bar a { text-decoration: none; font-weight: 600; color: var(--ink); background: var(--paper); padding: 8px 14px; border-radius: 999px; }
+.bar a:hover { background: var(--ink); color: #fff; }
+
+.page { max-width: 860px; margin: 0 auto; background: var(--paper); padding: 48px 52px; border-radius: 20px; }
+
+/* ---------- шапка ---------- */
+.head { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 28px; align-items: start; padding-bottom: 24px; border-bottom: 1px solid var(--line); }
+.name { font: 700 15px/1.2 var(--display); letter-spacing: -.01em; margin-bottom: 14px; }
+.pos { font: 800 30px/1.06 var(--display); letter-spacing: -.045em; margin-bottom: 14px; }
+.lede { font-size: 16px; color: var(--muted); max-width: 34em; }
+.lede strong { color: var(--ink); font-weight: 600; }
+.contacts { margin-top: 14px; display: flex; flex-wrap: wrap; gap: 4px 18px; font-size: 14px; font-weight: 500; }
+.contacts a { text-decoration: none; border-bottom: 1px solid var(--line); }
+.photo { width: 112px; height: 112px; object-fit: cover; border-radius: 14px; filter: grayscale(100%); }
+
+/* ---------- ключевые результаты ---------- */
+.wins { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.win { padding: 16px 16px 16px 0; }
+.win + .win { padding-left: 16px; border-left: 1px solid var(--line); }
+.win b { display: block; font: 800 28px/1 var(--display); letter-spacing: -.05em; white-space: nowrap; }
+.win b small { font-size: .5em; letter-spacing: -.03em; margin-left: .15em; }
+.win p { margin-top: 8px; font-size: 13.5px; line-height: 1.4; color: var(--muted); }
+
+/* ---------- что решаю ---------- */
+h2 { font: 700 17px/1.2 var(--display); letter-spacing: -.03em; margin: 28px 0 14px; }
+.solve { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.solve div { background: var(--card); border-radius: 14px; padding: 14px 16px; font-size: 14px; line-height: 1.4; color: var(--muted); }
+.solve b { display: block; color: var(--ink); font-weight: 600; font-size: 15px; margin-bottom: 4px; }
+
+/* ---------- полоска опыта ---------- */
+.track { font-size: 14px; color: var(--muted); margin: -6px 0 12px; }
+.tl { margin: 4px 0 6px; }
+.tl-eras, .tl-track { position: relative; }
+.tl-eras { height: 18px; }
+.tl-track { height: 30px; margin: 6px 0 8px; }
+.tl-eras span, .tl-seg { position: absolute; left: calc(var(--s) / 13 * 100%); width: calc((var(--e) - var(--s)) / 13 * 100%); }
+.tl-eras span { font-size: 11.5px; color: var(--muted); white-space: nowrap; border-left: 1.5px solid var(--line); padding-left: 6px; }
+.tl-eras .now { left: auto; right: 0; width: auto; border-left: 0; border-right: 1.5px solid var(--ink); padding: 0 6px 0 0; color: var(--ink); font-weight: 600; }
+.tl-seg { top: 0; bottom: 0; display: flex; align-items: center; padding: 0 8px; font-size: 11.5px; font-weight: 600; color: #fff; background: var(--ink); border-radius: 8px; border-right: 2px solid var(--paper); white-space: nowrap; overflow: hidden; }
+.tl-seg:nth-child(odd) { background: #3A3A3E; }
+.tl-years { display: flex; justify-content: space-between; font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; padding-right: 7.7%; }
+
+/* ---------- места работы ---------- */
+.jobs { border-top: 1px solid var(--line); }
+.job { display: grid; grid-template-columns: 92px 150px minmax(0, 1fr); gap: 0 20px; padding: 16px 0; border-bottom: 1px solid var(--line); break-inside: avoid; }
+.job-years { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; padding-top: 2px; }
+.job-co { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; padding-top: 1px; }
+.job-role { font-weight: 600; font-size: 16px; line-height: 1.3; }
+.job-role span { display: block; font-weight: 400; color: var(--muted); font-size: 14px; margin-top: 1px; }
+.job ul { list-style: none; display: grid; gap: 5px; margin-top: 8px; }
+.job li { position: relative; padding-left: 18px; font-size: 14.5px; line-height: 1.42; }
+.job li::before { content: ''; position: absolute; left: 0; top: .7em; width: 9px; height: 2px; background: var(--ink); }
+.job li strong { font-weight: 600; }
+
+.logo { display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; color: var(--ink); }
+.logo svg { height: 20px; width: auto; flex: none; }
+.logo .mark { height: 18px; }
+.logo .wide { height: 19px; }
+.logo .slim { height: 16px; }
+.logo .xslim { height: 13px; }
+.logo .tall { height: 26px; }
+.logo .mark-sq { height: 22px; }
+.wm { font: 700 15px/1 var(--text); letter-spacing: -.025em; }
+
+.groups { margin-top: 12px; display: grid; gap: 8px; }
+.group { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 18px; }
+.group-label { flex-basis: 100%; font-size: 12px; color: var(--muted); }
+.group .logo { opacity: .85; }
+.group .logo svg { height: 15px; }
+.group .logo .mark { height: 14px; }
+.group .logo .slim, .group .logo .xslim { height: 12px; }
+.group .logo .tall { height: 20px; }
+.group .wm { font-size: 13px; }
+
+/* ---------- навыки и прочее ---------- */
+.stack { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 28px; }
+.stack h3, .more h3 { font-size: 13px; font-weight: 600; color: var(--muted); margin-bottom: 8px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; list-style: none; }
+.chips li { background: var(--chip); padding: 5px 11px; border-radius: 999px; font-size: 13px; font-weight: 500; line-height: 1.25; }
+.more { display: grid; grid-template-columns: 1.5fr 1fr 1fr; gap: 18px 28px; margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--line); }
+.more ul { list-style: none; display: grid; gap: 8px; }
+.more li { font-size: 13.5px; line-height: 1.35; color: var(--muted); }
+.more li b { display: flex; align-items: center; gap: 8px; color: var(--ink); font-weight: 600; }
+.more li b img { width: 16px; height: auto; }
+.more li b svg { height: 15px; width: auto; }
+
+/* ---------- сноски-правки ---------- */
+.fn { display: inline-flex; align-items: center; justify-content: center; min-width: 15px; height: 15px; padding: 0 4px; margin-left: 3px; border-radius: 999px; background: #E8432E; color: #fff; font: 700 9.5px/1 var(--text); text-decoration: none; vertical-align: 2px; }
+.notes { margin-top: 30px; padding-top: 6px; border-top: 2px solid #E8432E; }
+.notes h2 { color: #E8432E; }
+.notes p.notes-lede { font-size: 14px; color: var(--muted); margin-bottom: 12px; }
+.notes ol { list-style: none; display: grid; gap: 10px; }
+.notes li { display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 8px; font-size: 13.5px; line-height: 1.42; }
+.notes li .fn { margin: 2px 0 0; justify-self: start; }
+.notes .was { display: block; color: var(--muted); margin-top: 2px; }
+.clean .fn, .clean .notes { display: none; }
+
+@media (max-width: 720px) {
+  body { padding: 16px 0 40px; }
+  .bar { padding: 0 16px; }
+  .page { padding: 28px 16px; border-radius: 0; }
+  .head { grid-template-columns: 1fr; }
+  .photo { order: -1; width: 84px; height: 84px; }
+  .pos { font-size: 26px; }
+  .wins { grid-template-columns: 1fr; }
+  .win + .win { padding-left: 0; border-left: 0; border-top: 1px solid var(--line); }
+  .solve, .stack, .more { grid-template-columns: 1fr; }
+  .tl { overflow-x: auto; }
+  .tl-inner { min-width: 620px; }
+  .job { grid-template-columns: 1fr; gap: 6px; }
+}
+
+@media print {
+  @page { size: A4; margin: 11mm 13mm; }
+  html, body { background: #fff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { padding: 0; font-size: 9pt; }
+  .bar { display: none; }
+  .page { max-width: none; padding: 0; border-radius: 0; zoom: .85; }
+  .head { padding-bottom: 12pt; gap: 16pt; }
+  .name { font-size: 10pt; margin-bottom: 8pt; }
+  .pos { font-size: 17.5pt; margin-bottom: 8pt; }
+  .lede { font-size: 9.6pt; }
+  .contacts { font-size: 8.6pt; margin-top: 8pt; }
+  .photo { width: 70pt; height: 70pt; border-radius: 9pt; }
+  .win { padding-top: 9pt; padding-bottom: 9pt; }
+  .win b { font-size: 17pt; }
+  .win p { font-size: 8.3pt; margin-top: 5pt; }
+  h2 { font-size: 10.5pt; margin: 14pt 0 8pt; }
+  .solve div { font-size: 8.4pt; padding: 8pt 10pt; border-radius: 8pt; }
+  .solve b { font-size: 9pt; }
+  .track { font-size: 8.6pt; margin: -4pt 0 7pt; }
+  .tl-eras { height: 12pt; }
+  .tl-eras span, .tl-years { font-size: 7pt; }
+  .tl-track { height: 17pt; margin: 3pt 0 4pt; }
+  .tl-seg { font-size: 7pt; padding: 0 5pt; border-radius: 5pt; }
+  .job { grid-template-columns: 54pt 88pt minmax(0, 1fr); gap: 0 12pt; padding: 8.5pt 0; }
+  .job-years { font-size: 8pt; }
+  .job-role { font-size: 9.8pt; }
+  .job-role span { font-size: 8.4pt; }
+  .job ul { gap: 2.5pt; margin-top: 5pt; }
+  .job li { font-size: 8.8pt; padding-left: 12pt; }
+  .job li::before { width: 6pt; height: 1.4pt; }
+  .logo svg { height: 13pt; }
+  .logo .mark { height: 12pt; }
+  .logo .wide { height: 12.5pt; }
+  .logo .slim { height: 10.5pt; }
+  .logo .xslim { height: 8.5pt; }
+  .logo .tall { height: 17pt; }
+  .wm { font-size: 10pt; }
+  .groups { margin-top: 7pt; gap: 5pt; }
+  .group { gap: 3pt 12pt; }
+  .group-label { font-size: 7.4pt; }
+  .group .logo svg { height: 10pt; }
+  .group .logo .mark { height: 9pt; }
+  .group .logo .slim, .group .logo .xslim { height: 8pt; }
+  .group .logo .tall { height: 13pt; }
+  .group .wm { font-size: 8.6pt; }
+  .stack { gap: 10pt 18pt; }
+  .stack h3, .more h3 { font-size: 8pt; margin-bottom: 5pt; }
+  .chips { gap: 3.5pt; }
+  .chips li { font-size: 7.8pt; padding: 2.5pt 7pt; }
+  .more { margin-top: 12pt; padding-top: 10pt; gap: 10pt 18pt; }
+  .more ul { gap: 4pt; }
+  .more li { font-size: 8.2pt; }
+  .more li b img { width: 10pt; }
+  .more li b svg { height: 9pt; }
+  .fn { min-width: 10pt; height: 10pt; font-size: 6.5pt; padding: 0 2.5pt; margin-left: 2pt; vertical-align: 1.5pt; }
+  .notes { break-before: page; margin-top: 0; }
+  .notes p.notes-lede { font-size: 9pt; }
+  .notes ol { gap: 6pt; }
+  .notes li { font-size: 8.8pt; grid-template-columns: 16pt minmax(0, 1fr); gap: 5pt; break-inside: avoid; }
+}
+</style>
+</head>
+<body>
+<div class="bar">
+  <span>Версия 2 резюме, на проверке. Красные номера – что поменял.</span>
+  <span class="bar-links">
+    <a href="Mikhail-Melanin-CV-v2-clean.pdf" target="_blank" rel="noopener">PDF чистый</a>
+    <a href="Mikhail-Melanin-CV-v2-pravki.pdf" target="_blank" rel="noopener">PDF с правками</a>
+  </span>
+</div>
+
+<div class="page">
+  <header class="head">
+    <div>
+      <p class="name">Михаил Меланьин</p>
+      <h1 class="pos">Руководитель проектов по внедрению AI<a class="fn" href="#n1">1</a></h1>
+      <p class="lede"><strong>Внедряю AI в крупные компании: нахожу, где он экономит деньги, запускаю проект и довожу до результата.</strong> 12+ лет продаю и внедряю технологии в банках, ритейле, промышленности и телекоме.<a class="fn" href="#n1">1</a></p>
+      <div class="contacts">
+        <a href="https://t.me/mike_melanin">Telegram @mike_melanin</a>
+        <a href="tel:+79251164669">+7 925 116-46-69</a>
+        <a href="mailto:m.v.melanin@gmail.com">m.v.melanin@gmail.com</a>
+        <span>Москва</span>
+      </div>
+    </div>
+    <img class="photo" src="../img/headshot.jpg" alt="Михаил Меланьин" width="112" height="112">
+  </header>
+
+  <h2>Ключевые результаты<a class="fn" href="#n2">2</a></h2>
+  <div class="wins">
+    <div class="win"><b>~10x</b><p>Создал стартап в Кремниевой долине и вышел из него с ~10x. Как сооснователь, по сути co-CEO, руководил всем до инвестиций: Slack-бот для аналитики, 10 000+ пользователей и 300+ платящих компаний.</p></div>
+    <div class="win"><b>30+</b><p>В Центре робототехники Сбера провёл аудит крупнейших компаний России и дочек Сбера, собрал программу роботизации: 30+ проектов, пилоты и пресейлы с Лентой, НЛМК, ДИТ Москвы и СберСервисом.</p></div>
+    <div class="win"><b>~600<small>млн ₽</small></b><p>Суммарно закрыл сделок и привлёк инвестиций на ~600 млн ₽ ($7M+): инвестиции в Cube и Nopilot, продажи enterprise-клиентам.</p></div>
+  </div>
+
+  <h2>Какие задачи закрываю<a class="fn" href="#n3">3</a></h2>
+  <div class="solve">
+    <div><b>Нахожу, где AI даст деньги</b>Разбираю процессы компании, нахожу узкие места и считаю, сколько сэкономит или принесёт AI.</div>
+    <div><b>Перевожу бизнес на язык инженеров</b>Выясняю у руководства, что на самом деле нужно, и превращаю это в понятное задание для технической команды.</div>
+    <div><b>Довожу до работающего решения</b>Сам собираю прототип, проектирую решение внутри контура компании с учётом безопасности и вывожу в работу.</div>
+  </div>
+
+  <h2>Опыт<a class="fn" href="#n4">4</a></h2>
+  <p class="track">Продукт и продажи B2B в США → роботы → AI-агенты → внедрение AI в крупный бизнес</p>
+  <div class="tl"><div class="tl-inner">
+    <div class="tl-eras">
+      <span style="--s:0;--e:5">Продукт и продажи B2B в США</span>
+      <span style="--s:5;--e:8.55">Роботы</span>
+      <span style="--s:8.55;--e:12">AI-агенты</span>
+      <span class="now" style="--s:12;--e:13">Внедрение AI</span>
+    </div>
+    <div class="tl-track">
+      <span class="tl-seg" style="--s:0;--e:3.83">Cube</span>
+      <span class="tl-seg" style="--s:3.83;--e:5">BANKEX</span>
+      <span class="tl-seg" style="--s:5;--e:7.37">Nopilot</span>
+      <span class="tl-seg" style="--s:7.37;--e:8.55">Сбер</span>
+      <span class="tl-seg" style="--s:8.55;--e:12">Strawberry</span>
+      <span class="tl-seg" style="--s:12;--e:13">AI Lead</span>
+    </div>
+    <div class="tl-years"><span>2014</span><span>2016</span><span>2018</span><span>2020</span><span>2022</span><span>2024</span><span>2026</span></div>
+  </div></div>
+
+  <div class="jobs">
+    <article class="job">
+      <div class="job-years">июнь 2026 – сейчас</div>
+      <div class="job-co">{{logo:red_mad_robot}}</div>
+      <div>
+        <p class="job-role">Руководитель AI-трансформации<span>Enterprise AI Transformation Lead · банки и крупные компании</span></p>
+        <ul>
+          <li>Провёл аудит бизнес-процессов в банках и крупных компаниях: нашёл узкие места, где AI даёт эффект в деньгах, посчитал окупаемость и план внедрения.<a class="fn" href="#n5">5</a></li>
+          <li>Спроектировал корпоративные AI-платформы, которые работают внутри контура банка: данные не уходят наружу, качество ответов под контролем.<a class="fn" href="#n6">6</a></li>
+          <li>Заложил в архитектуру требования банков к надёжности и безопасности: SLA, резервирование, ИБ, мониторинг.<a class="fn" href="#n6">6</a></li>
+          <li>Вышел на CIO, руководителей бизнеса и зампредов банков, подготовил пилоты с измеримым эффектом.<a class="fn" href="#n5">5</a></li>
+        </ul>
+      </div>
+    </article>
+
+    <article class="job">
+      <div class="job-years">янв – июнь 2026</div>
+      <div class="job-co">{{logo:Manaraga}}</div>
+      <div>
+        <p class="job-role">Solution / Presales Lead<span>Разработчик AI-решений под заказ для крупного бизнеса</span></p>
+        <ul>
+          <li>Перевёл запросы бизнеса в понятные требования для инженеров: разобрал задачи с заказчиками, подготовил ТЗ с аналитиками, определил состав работ, довёл предложения до подписания.<a class="fn" href="#n7">7</a></li>
+          <li>Подобрал архитектуру под задачи клиентов: модели, поиск по базе знаний компании, развёртывание на серверах заказчика.<a class="fn" href="#n7">7</a></li>
+          <li>Спроектировал решения для клиентов: AI-агенты поддержки, речевая аналитика звонков, поиск по документам, обезличивание персональных данных по ФЗ-152.<a class="fn" href="#n7">7</a></li>
+        </ul>
+      </div>
+    </article>
+
+    <article class="job">
+      <div class="job-years">2022 – 2025</div>
+      <div class="job-co">{{logo:Strawberry.ai}}</div>
+      <div>
+        <p class="job-role">Head of BD &amp; Product<span>Персональный AI-агент в собственном устройстве</span></p>
+        <ul>
+          <li>Собрал прототип AI-агента с памятью и доступом к приложениям, провёл тесты с пользователями.<a class="fn" href="#n8">8</a></li>
+          <li>Определил продуктовую стратегию и выход на рынок: целевая аудитория, ценность для клиента, roadmap, метрики MVP.<a class="fn" href="#n8">8</a></li>
+          <li>Скоординировал работу 5 команд: звук, iOS, распознавание речи, LLM, агентная платформа.<a class="fn" href="#n8">8</a></li>
+        </ul>
+      </div>
+    </article>
+
+    <article class="job">
+      <div class="job-years">2021 – 2022</div>
+      <div class="job-co">{{logo:Сбер}}</div>
+      <div>
+        <p class="job-role">Senior Product Manager<span>Sber Robotics Lab: роботы для доставки, ритейла и промышленности</span></p>
+        <ul>
+          <li>Упаковал робота-доставщика в продукт: сценарии работы, метрики успеха, полевые тесты.<a class="fn" href="#n9">9</a></li>
+          <li>Провёл пресейлы для Ленты, ДИТ Москвы, НЛМК и СберСервис: дизайн пилота, бизнес-кейс, экономика, переговоры.<a class="fn" href="#n9">9</a></li>
+          <li><strong>Отобрал 30+ сценариев применения роботов, 5 довёл до пилота или пресейла.</strong><a class="fn" href="#n9">9</a></li>
+        </ul>
+        <div class="groups">
+          <div class="group"><span class="group-label">Пилоты и пресейлы</span>{{logo:Лента}}{{logo:ДИТ Москвы}}{{logo:НЛМК}}{{logo:СберСервис}}</div>
+        </div>
+      </div>
+    </article>
+
+    <article class="job">
+      <div class="job-years">2019 – 2021</div>
+      <div class="job-co">{{logo:Nopilot.ai}}</div>
+      <div>
+        <p class="job-role">Co-founder, Head of BD<span>Автономная доставка, Канада и Россия</span></p>
+        <ul>
+          <li>Запустил 2 пилота с реальными операторами в Москве и Монреале, собрал данные для обучения моделей.<a class="fn" href="#n10">10</a></li>
+          <li>Построил стратегию выхода на рынок: целевые клиенты, цены, позиционирование.<a class="fn" href="#n10">10</a></li>
+          <li>Прошёл акселератор Techstars Montreal AI, привлёк seed-инвестиции, собрал команду.<a class="fn" href="#n10">10</a></li>
+        </ul>
+      </div>
+    </article>
+
+    <article class="job">
+      <div class="job-years">2014 – 2017</div>
+      <div class="job-co">{{logo:Cube}}</div>
+      <div>
+        <p class="job-role">Сооснователь, по сути co-CEO<span>Chief Business Development Officer · Statsbot → Cube Dev, B2B SaaS для аналитики, США</span></p>
+        <ul>
+          <li>Руководил всем бизнесом до инвестиций: продукт, продажи, маркетинг, команда.<a class="fn" href="#n11">11</a></li>
+          <li>Построил продажи и маркетинг с нуля: сегменты, целевые клиенты, каналы, воронка, цены.<a class="fn" href="#n11">11</a></li>
+          <li><strong>Вырастил продукт до 10 000+ пользователей и 300+ платящих enterprise-клиентов.</strong></li>
+          <li>Заключил партнёрства со Slack, Salesforce, Mixpanel и Google Analytics, привлёк инвестиции и <strong>вышел из компании с ~10x</strong>. Сегодня Cube – в Gartner 2026.<a class="fn" href="#n11">11</a></li>
+        </ul>
+        <div class="groups">
+          <div class="group"><span class="group-label">Партнёрства</span>{{logo:Slack}}{{logo:Salesforce}}{{logo:Mixpanel}}{{logo:Google Analytics}}</div>
+          <div class="group"><span class="group-label">Инвесторы</span>{{logo:Slack Fund}}{{logo:500 Startups}}{{logo:Betaworks}}{{logo:Innovation Endeavors}}</div>
+          <div class="group"><span class="group-label">Клиенты Cube сегодня</span>{{logo:Tesla}}{{logo:SpaceX}}{{logo:Walmart}}{{logo:Patagonia}}</div>
+        </div>
+      </div>
+    </article>
+
+    <article class="job">
+      <div class="job-years">2014 – 2018</div>
+      <div class="job-co">{{logo:BANKEX}}{{logo:Нетология}}</div>
+      <div>
+        <p class="job-role">Ранее: BANKEX, МДМ Банк, Нетология<span>Fintech, мобильный банк, продуктовый дизайн</span></p>
+        <ul>
+          <li><strong>BANKEX</strong>, Project Director, 2017–2018: возглавил команду 25+ человек в Лос-Анджелесе и Москве, запустил платформу токенизации активов.<a class="fn" href="#n12">12</a></li>
+          <li><strong>МДМ Банк / Бинбанк</strong>, UX Expert, 2015–2016: спроектировал ключевые сценарии мобильного банка для частных клиентов и бизнеса.<a class="fn" href="#n12">12</a></li>
+          <li><strong>Нетология-групп</strong>, Head of Product Design, 2014–2015: создал дизайн-функцию с нуля, сделал редизайн ключевых продуктов.<a class="fn" href="#n12">12</a></li>
+        </ul>
+      </div>
+    </article>
+  </div>
+
+  <h2>Навыки<a class="fn" href="#n13">13</a></h2>
+  <div class="stack">
+    <div>
+      <h3>Бизнес</h3>
+      <ul class="chips"><li>Аудит бизнес-процессов</li><li>Бизнес-кейс и ROI</li><li>AI-стратегия</li><li>Пресейл и enterprise-продажи</li><li>Архитектура решений</li><li>Внедрение в enterprise</li><li>Продуктовая стратегия</li><li>Выход на рынок (GTM)</li><li>Партнёрства</li><li>Переговоры</li><li>Привлечение инвестиций</li></ul>
+    </div>
+    <div>
+      <h3>Технологии</h3>
+      <ul class="chips"><li>GenAI и LLM</li><li>AI-агенты</li><li>RAG и базы знаний</li><li>MCP и tool use</li><li>Evals и guardrails</li><li>Langfuse, OpenTelemetry</li><li>AI Gateway</li><li>On-prem и open-weight LLM</li><li>Стоимость и скорость inference</li><li>Python-прототипы</li><li>SLA и отказоустойчивость</li><li>ИБ и ФЗ-152</li></ul>
+    </div>
+  </div>
+
+  <div class="more">
+    <div>
+      <h3>Образование</h3>
+      <ul>
+        <li><b><img src="../../img/bmstu.png" alt="" width="54" height="63">МГТУ им. Баумана</b>Робототехника и комплексная автоматизация, 2010</li>
+        <li><b>{{svg:Techstars}}</b>Techstars AI Montreal, 2020</li>
+        <li><b>{{svg:500 Startups}}</b>500 Startups, Сан-Франциско, 2016</li>
+        <li><b>{{svg:Betaworks}}</b>Betaworks Bootcamp, Нью-Йорк, 2016</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Языки</h3>
+      <ul>
+        <li><b>Русский</b>родной</li>
+        <li><b>Английский</b>C1, работал в США и Канаде</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Вне работы</h3>
+      <ul>
+        <li><b>Moscow Gravel Cycling Club</b>организатор, 500+ участников. Беговые и горные лыжи.</li>
+      </ul>
+    </div>
+  </div>
+
+  <section class="notes" id="notes">
+    <h2>Что поменял</h2>
+    <p class="notes-lede">По разбору с Вадимом: кто я – в первой строке, всё в совершённом виде (сделал, провёл, подал), проще язык, меньше сокращений, без слова "инициативы", вёрстка как в разделе Опыт на сайте. Пункт 2 проверь по фактам.</p>
+    <ol>
+      <li id="n1"><span class="fn">1</span><span>Позиционирование в лоб, как советовал Вадим: Руководитель проектов по внедрению AI.<span class="was">Было: Enterprise AI Transformation Lead · 12+ лет на стыке бизнеса, продукта и технологий в enterprise tech, AI и robotics.</span></span></li>
+      <li id="n2"><span class="fn">2</span><span>Три ключевых результата историями, как у Вадима: выход из стартапа с ~10x, программа роботизации в Сбере, ~600 млн ₽ ($7M × 86) сделок и инвестиций. Проверь разбивку 600 млн: инвестиции в Cube и Nopilot плюс продажи.<span class="was">Было: Cube – 10 000+ пользователей, ~10x exit; Sber – pipeline из 30+ инициатив; Manaraga – проекты 5–20 млн ₽.</span></span></li>
+      <li id="n3"><span class="fn">3</span><span>Новый блок вместо абзаца-саммари. Сюда же мысль Вадима: раскопать у C-level, что нужно, и сделать из этого задание для инженеров.<span class="was">Было: Полный цикл AI-инициатив: поиск use cases с измеримым ROI и отражением в P&amp;L… вывод в production с FDE-командой.</span></span></li>
+      <li id="n4"><span class="fn">4</span><span>Вёрстка как в разделе Опыт на сайте: полоска с годами, логотипы. Над полоской – логика карьеры, этапы на полоске подписаны так же.<span class="was">Было: текстовый список без логотипов.</span></span></li>
+      <li id="n5"><span class="fn">5</span><span>red_mad_robot: AI-трансформация расшифрована как аудит процессов и поиск узких мест, всё в прошедшем времени. Пилоты – "подготовил", а не "запустил".<span class="was">Было: Программы AI-трансформации…: диагностика процессов, приоритизация use cases, бизнес-кейсы и ROI, дорожная карта до production.</span></span></li>
+      <li id="n6"><span class="fn">6</span><span>red_mad_robot: вместо списка компонентов – что это даёт банку.<span class="was">Было: LLM inference, AI Gateway/Router, RAG/Knowledge Layer, Agent Harness &amp; Runtime, orchestration, MCP/tools, guardrails и observability; RTO/RPO, DR.</span></span></li>
+      <li id="n7"><span class="fn">7</span><span>Manaraga: убраны discovery, PRD, scope, solution concept, agent frameworks. Портфель продуктов стал "спроектировал решения" – без продаж.<span class="was">Было: Solution design для проектов 5–20 млн ₽: discovery, PRD с бизнес-аналитиками, scope, solution concept…; Продуктовый портфель: …</span></span></li>
+      <li id="n8"><span class="fn">8</span><span>Strawberry: прошедшее время, расшифрованы ICP, ASR, tool use, agent runtime.<span class="was">Было: Прототип AI-агента: сборка и пользовательские тесты; Продуктовая стратегия и GTM: ICP, value proposition…</span></span></li>
+      <li id="n9"><span class="fn">9</span><span>Сбер: убрано слово "инициативы", добавлены логотипы клиентов. Проверь формулировку "30+ сценариев".<span class="was">Было: Pipeline из 30+ инициатив, 5 доведены до пилота или пресейла.</span></span></li>
+      <li id="n10"><span class="fn">10</span><span>Nopilot: прошедшее время, убраны VLA/VLM, ICP, narrative.<span class="was">Было: Autonomous last-mile delivery…; end-to-end подход с VLA / VLM-моделями.</span></span></li>
+      <li id="n11"><span class="fn">11</span><span>Cube: роль – сооснователь, по сути co-CEO, руководил всем до инвестиций; твой выход с ~10x. GTM расшифрован как продажи и маркетинг, добавлены логотипы.<span class="was">Было: GTM с нуля: сегментация, ICP, value proposition, каналы, воронка, pricing.</span></span></li>
+      <li id="n12"><span class="fn">12</span><span>Ранее: из описания обязанностей – в результат.<span class="was">Было: fintech-платформа для токенизации активов; ключевые сценарии мобильного банка; дизайн-функция с нуля.</span></span></li>
+      <li id="n13"><span class="fn">13</span><span>Навыки: два длинных списка через точку заменены тегами как на сайте, часть терминов переведена на русский. Убраны дубли и Agent Harness, RTO/RPO, DR.<span class="was">Было: блоки Технический контур и Навыки одной строкой.</span></span></li>
+    </ol>
+  </section>
+</div>
+</body>
+</html>
