@@ -128,7 +128,7 @@ void main(){
     }
     function setupGl() {
       shaders = [];
-      gl = cvGl.getContext('webgl', { premultipliedAlpha: true, antialias: false, alpha: true });
+      gl = cvGl.getContext('webgl', { premultipliedAlpha: true, antialias: false, alpha: true, preserveDrawingBuffer: true });
       if (!gl || !gl.getExtension('OES_standard_derivatives')) return false;
       const sh = (type, src) => { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); shaders.push(s); return gl.getShaderParameter(s, gl.COMPILE_STATUS) ? s : null; };
       const vs = sh(gl.VERTEX_SHADER, VERT), fs = sh(gl.FRAGMENT_SHADER, FRAG);
@@ -462,13 +462,14 @@ void main(){
       gl.uniform3fv(U.uPts, pts); gl.uniform1fv(U.uOn, on); gl.uniform4fv(U.uBox, box);
       gl.uniform4fv(U.uSpk, spk); gl.uniform1fv(U.uSpkR, spkR); gl.uniform3fv(U.uDrop, drp);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
-      // самопроверка: центр пилюли должен быть непрозрачным, иначе сбрасываем физику, потом пересоздаём контекст
+      // самопроверка: под пилюлей шейдер должен рисовать непрозрачно. Не рисует – сбрасываем физику,
+      // не помогло – выключаем WebGL насовсем, кнопка остаётся обычной CSS-пилюлей
       if (++frames % 90 === 0) {
         const px = new Uint8Array(4);
         gl.readPixels(Math.round(pill.cx * gdpr), Math.round((H - pill.cy) * gdpr), 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px);
         if (px[3] > 200) strikes = 0;
         else if (++strikes === 1) reset();
-        else { const ext = gl.getExtension('WEBGL_lose_context'); if (ext) { ext.loseContext(); setTimeout(() => ext.restoreContext(), 50); } }
+        else { console.warn('venom: WebGL draws nothing, falling back to CSS'); dead = true; stop(); flat(); }
       }
     }
 
