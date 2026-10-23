@@ -915,9 +915,3 @@ body { --cut: var(--paper); }
 .venom--gl .venom-btn:focus-visible { box-shadow: 0 0 0 4px rgba(0,0,0,.25); }
 html.venom-nocursor, html.venom-nocursor * { cursor: none !important; }
 @media (prefers-reduced-motion: reduce) { .venom-btn:active { transform: none; } }
-.venom-nav .venom-btn { height: 44px; padding: 0 18px; font-size: 15px; font-weight: 600; letter-spacing: -.01em; gap: .5em; }
-.venom-nav .venom-btn svg { width: 19px; height: 19px; }
-@media (max-width: 560px) {
-  .venom-nav .venom-btn span { display: none; }
-  .venom-nav .venom-btn { width: 44px; padding: 0; }
-}

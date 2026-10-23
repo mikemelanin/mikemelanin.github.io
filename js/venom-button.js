@@ -160,7 +160,7 @@ void main(){
     let W = 0, H = 0, dpr = 1, gdpr = 1;
     function fit() {
       dpr = Math.min(2, devicePixelRatio || 1);
-      gdpr = Math.min(1.5, dpr);
+      gdpr = Math.min(1.25, dpr);
       W = wrap.offsetWidth + PADX * 2; H = wrap.offsetHeight + PADY * 2;
       [cvGl, cvFx, cvHand].forEach(c => {
         c.style.left = -PADX + 'px'; c.style.top = -PADY + 'px'; c.style.width = W + 'px'; c.style.height = H + 'px';
@@ -215,7 +215,7 @@ void main(){
         p: new Float32Array(NP * 2), q: new Float32Array(NP * 2), off: (i - (N - 1) / 2) * 7
       });
     }
-    let state = 'idle', violent = false, growT = 0, t = 0;
+    let state = 'idle', violent = false, growT = 0, t = 0, lastD = Infinity, handIn = false, calm = 0, frames = 0, strikes = 0;
     let moundS = 0, mound = 0, moundV = 0, lean = 0;
     const skin = new Float32Array(8);
     const spikes = [], drops = [];
@@ -225,6 +225,11 @@ void main(){
     const onMove = e => {
       if (e.pointerType === 'touch') return;
       ptr = { x: e.clientX, y: e.clientY }; lastReal = performance.now();
+      if (!running && visible && !dead) {
+        const r = btn.getBoundingClientRect();
+        const dx = Math.max(r.left - e.clientX, 0, e.clientX - r.right), dy = Math.max(r.top - e.clientY, 0, e.clientY - r.bottom);
+        if (Math.max(dx - PADX, dy - PADY) < 40 || Math.hypot(dx, dy) < opt.sense + 60) start();
+      }
     };
     const onLeave = e => { if (!e.relatedTarget) ptr = null; };
     const onBlur = () => { ptr = null; };
@@ -297,7 +302,7 @@ void main(){
         mid = glove ? [hand.x + HAND_MID[0] * GS, hand.y + HAND_MID[1] * GS] : [hand.x, hand.y];
         D = Math.max(0, sdPill(mid[0], mid[1]));
       }
-      me.D = D;
+      me.D = D; lastD = D; handIn = !!(hand && hand.inStage);
       const { sense, reach, release } = opt;
 
       // переходы состояний
@@ -457,6 +462,14 @@ void main(){
       gl.uniform3fv(U.uPts, pts); gl.uniform1fv(U.uOn, on); gl.uniform4fv(U.uBox, box);
       gl.uniform4fv(U.uSpk, spk); gl.uniform1fv(U.uSpkR, spkR); gl.uniform3fv(U.uDrop, drp);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
+      // самопроверка: центр пилюли должен быть непрозрачным, иначе сбрасываем физику, потом пересоздаём контекст
+      if (++frames % 90 === 0) {
+        const px = new Uint8Array(4);
+        gl.readPixels(Math.round(pill.cx * gdpr), Math.round((H - pill.cy) * gdpr), 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px);
+        if (px[3] > 200) strikes = 0;
+        else if (++strikes === 1) reset();
+        else { const ext = gl.getExtension('WEBGL_lose_context'); if (ext) { ext.loseContext(); setTimeout(() => ext.restoreContext(), 50); } }
+      }
     }
 
     function strokeRope(c, st, from, width) {
@@ -469,9 +482,10 @@ void main(){
       c.lineWidth = width; c.stroke();
     }
 
+    let fxDirty = false, handDirty = false;
     function drawFx() {
-      fx.setTransform(dpr, 0, 0, dpr, 0, 0); fx.clearRect(0, 0, W, H);
-      if (state !== 'hold' && state !== 'snap') return;
+      if (state !== 'hold' && state !== 'snap') { if (fxDirty) { fx.clearRect(0, 0, cvFx.width, cvFx.height); fxDirty = false; } return; }
+      fx.setTransform(dpr, 0, 0, dpr, 0, 0); fx.clearRect(0, 0, W, H); fxDirty = true;
       fx.lineCap = 'round'; fx.strokeStyle = '#0a0a0c';
       strands.forEach(st => { if (st.hair && st.amt > 0.05) strokeRope(fx, st, 0, 1.4 * st.amt); });
       const thick = strands.filter(st => !st.hair);
@@ -489,11 +503,10 @@ void main(){
     }
 
     function drawHand(hand) {
-      hx.setTransform(dpr, 0, 0, dpr, 0, 0); hx.clearRect(0, 0, W, H);
-      if (!glove || !hand || !hand.inStage) return;
       let best = null;
       for (const v of live) if (!best || v.D < best.D) best = v;
-      if (best !== me) return;
+      if (!glove || !hand || !hand.inStage || best !== me) { if (handDirty) { hx.clearRect(0, 0, cvHand.width, cvHand.height); handDirty = false; } return; }
+      hx.setTransform(dpr, 0, 0, dpr, 0, 0); hx.clearRect(0, 0, W, H); handDirty = true;
       hx.save(); hx.translate(hand.x, hand.y); hx.scale(GS, GS);
       hx.lineJoin = 'round'; hx.lineCap = 'round'; hx.strokeStyle = '#111'; hx.fillStyle = '#fff';
       handPath(hx); hx.lineWidth = 2.4; hx.stroke(); hx.fill();
@@ -526,9 +539,9 @@ void main(){
       }
     }
 
-    function draw(hand) {
+    function draw(hand, measured) {
       if (W === 0) return;
-      measure();
+      if (!measured) measure();
       drawGl(); drawFx(); drawHand(hand);
     }
 
@@ -537,10 +550,15 @@ void main(){
     function frame(now) {
       raf = requestAnimationFrame(frame);
       const dt = Math.min(1 / 30, last ? (now - last) / 1000 : 1 / 60); last = now;
-      try { draw(step(dt, now)); } catch (err) { console.warn('venom:', err); reset(); }
+      try { draw(step(dt, now), true); } catch (err) { console.warn('venom:', err); reset(); }
+      // засыпаем, когда всё улеглось и курсор далеко – ноль нагрузки, пока к кнопке не подойдут
+      const still = state === 'idle' && !handIn && lastD > opt.sense && !spikes.length && !drops.length
+        && Math.abs(mound) < 0.3 && Math.abs(moundV) < 0.3 && strands.every(st => st.len < 0.5) && !skin.some(v => v > 0);
+      calm = still ? calm + dt : 0;
+      if (calm > 0.4 && !opt.autoplay) { calm = 0; stop(); }
     }
     function start() { if (running || reduced || dead || !visible) return; running = true; last = 0; raf = requestAnimationFrame(frame); }
-    function stop() { running = false; cancelAnimationFrame(raf); me.D = Infinity; setCursor(false); if (W) hx.clearRect(0, 0, cvHand.width, cvHand.height); }
+    function stop() { running = false; cancelAnimationFrame(raf); me.D = Infinity; setCursor(false); if (W) { hx.clearRect(0, 0, cvHand.width, cvHand.height); handDirty = false; } }
 
     const ro = new ResizeObserver(fit); ro.observe(wrap);
     const io = new IntersectionObserver(es => { visible = es[es.length - 1].isIntersecting; visible ? start() : stop(); });
