@@ -903,12 +903,10 @@ body { --cut: var(--paper); }
   height: 64px; padding: 0 36px; border: 0; border-radius: 999px;
   font: 700 20px/1 -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', system-ui, sans-serif;
   letter-spacing: -.02em; white-space: nowrap; text-decoration: none;
-  color: #f4f4f4; text-shadow: 0 1px 1px rgba(0,0,0,.55);
-  /* запасная пилюля, если WebGL недоступен или сбоит */
-  background:
-    radial-gradient(60% 55% at 50% 8%, rgba(255,255,255,.34), rgba(255,255,255,0) 70%),
-    linear-gradient(180deg, #3d3d42 0%, #18181b 30%, #070708 52%, #0d0d0f 74%, #2b2b30 100%);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.28), inset 0 -1px 0 rgba(255,255,255,.12), 0 8px 18px -6px rgba(0,0,0,.35);
+  color: #f4f4f4; text-shadow: 0 1px 0 rgba(0,0,0,.75), 0 -0.5px 0 rgba(255,255,255,.25);
+  /* запасная пилюля оригинала, если WebGL недоступен или сбоит */
+  background: linear-gradient(180deg, #1c1c1e 0%, #0a0a0a 42%, #020202 100%);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.14), inset 0 -1.5px 0 rgba(255,255,255,.22), 0 18px 28px -14px rgba(0,0,0,.55);
   transition: transform .45s cubic-bezier(.34,1.8,.5,1);
 }
 .venom-btn svg { width: 22px; height: 22px; flex: none; }
