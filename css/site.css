@@ -93,7 +93,10 @@ img { display: block; max-width: 100%; }
 /* ---------- rolling word ---------- */
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .slot { pointer-events: auto; cursor: pointer; white-space: nowrap; }
-.slot-w { display: inline-block; position: relative; white-space: nowrap; will-change: transform; transition: width .4s cubic-bezier(.2,.8,.2,1), opacity .3s; }
+/* сверху и снизу слово обрезает строка, по бокам – само окошко, пока меняется ширина */
+.slot-w { display: inline-block; position: relative; white-space: nowrap; clip-path: inset(-1em 0 -1em 0); }
+.slot-i { display: inline-block; white-space: nowrap; }
+.slot-i.is-in { position: absolute; left: 0; top: 0; }
 
 .lede { font-size: clamp(18px, 1.6vw, 21px); line-height: 1.5; max-width: 34em; color: var(--on-blue-soft); }
 .lede strong { color: var(--on-blue); font-weight: 600; }

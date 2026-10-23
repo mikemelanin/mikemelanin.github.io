@@ -134,19 +134,39 @@
     const word = slot.querySelector('.slot-w');
     const WORDS = ['банки', 'ритейл', 'фарму', 'страхование', 'телеком', 'FMCG', 'бизнес'];
     let idx = 0, heroVis = true, last = 0, busy = false;
-    const roll = async (text) => {
-      word.style.width = word.getBoundingClientRect().width + 'px';
-      await word.animate([{ transform: 'none', opacity: 1 }, { transform: 'translateY(-80%)', opacity: 0 }], { duration: 200, easing: 'cubic-bezier(.5,0,.75,0)' }).finished;
-      word.textContent = text;
-      const from = word.style.width;
-      word.style.width = 'auto';
-      const to = word.getBoundingClientRect().width;
-      word.style.width = from;
-      word.offsetWidth;
-      word.style.width = to + 'px';
-      await word.animate([{ transform: 'translateY(80%)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 380, easing: 'cubic-bezier(.2,.8,.2,1)' }).finished;
+    // пружины как в framer-motion: слово – жёсткость 260 и затухание 26, ширина окошка – 300 и 30
+    const spring = (k, c) => {
+      let x = 0, v = 0, t = 0;
+      const pts = [];
+      while (t < 2 && (t < 0.1 || Math.abs(1 - x) > 0.001 || Math.abs(v) > 0.01)) {
+        pts.push(+x.toFixed(4));
+        for (let i = 0; i < 16; i++) { v += (k * (1 - x) - c * v) / 960; x += v / 960; }
+        t += 1 / 60;
+      }
+      pts.push(1);
+      const ok = CSS.supports('animation-timing-function', 'linear(0, 1)');
+      return { duration: Math.round(t * 1000), easing: ok ? `linear(${pts.join(', ')})` : 'cubic-bezier(.2,.9,.3,1)' };
     };
-    word.addEventListener('transitionend', e => { if (e.propertyName === 'width') word.style.width = ''; });
+    const WORD = spring(260, 26), WIDTH = spring(300, 30);
+    // старое слово уезжает вверх и расплывается, новое въезжает снизу из размытия, окошко подстраивает ширину
+    const roll = async (text) => {
+      const old = word.querySelector('.slot-i:not(.is-out)');
+      const from = word.getBoundingClientRect().width;
+      const next = document.createElement('span');
+      next.className = 'slot-i is-in';
+      next.textContent = text;
+      word.append(next);
+      const to = next.getBoundingClientRect().width;
+      old.classList.add('is-out');
+      const fx = { duration: WORD.duration, easing: WORD.easing, fill: 'forwards' };
+      const gone = old.animate([{ transform: 'none', opacity: 1, filter: 'blur(0)' }, { transform: 'translateY(-100%)', opacity: 0, filter: 'blur(8px)' }], fx);
+      const come = next.animate([{ transform: 'translateY(100%)', opacity: 0, filter: 'blur(8px)' }, { transform: 'none', opacity: 1, filter: 'blur(0)' }], WORD);
+      const grow = word.animate([{ width: from + 'px' }, { width: to + 'px' }], { ...WIDTH, fill: 'forwards' });
+      await Promise.all([gone.finished, come.finished, grow.finished]);
+      old.remove();
+      next.classList.remove('is-in');
+      grow.cancel();
+    };
     const step = async () => {
       if (busy) return;
       busy = true;
