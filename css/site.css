@@ -157,11 +157,11 @@ h2 { font: 700 clamp(34px, 5vw, 68px)/1 var(--display); letter-spacing: -.04em; 
 .story-head { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 16px 48px; margin-bottom: clamp(24px, 3vw, 36px); }
 .story-head h2 { font-size: clamp(32px, 3.6vw, 52px); }
 .story-head p { color: var(--muted); max-width: 26em; font-size: 17px; }
-.rail { display: grid; grid-template-columns: repeat(4, 1fr); position: relative; margin-bottom: clamp(24px, 3vw, 40px); }
-.rail::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 3px; background: var(--line); }
-.rail button { position: relative; appearance: none; border: 0; background: none; color: inherit; font: inherit; text-align: left; padding: 16px 16px 0 0; cursor: pointer; }
-.rail button::after { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 3px; background: var(--figure); transform: scaleX(0); transform-origin: left; }
-.rail button.is-on::after { transform: scaleX(1); }
+.rail { display: grid; grid-template-columns: repeat(4, 1fr); position: relative; margin-bottom: clamp(24px, 3vw, 40px); padding: 4px; border-radius: 20px; background: var(--chip); }
+.rail-pill { position: absolute; top: 4px; bottom: 4px; left: 0; border-radius: 16px; background: var(--paper); box-shadow: 0 2px 6px rgba(0,0,0,.1), 0 0 0 .5px rgba(0,0,0,.04); transition: transform var(--sp-pill, .4s ease), width var(--sp-pill, .4s ease); }
+.rail button { position: relative; z-index: 1; appearance: none; border: 0; background: none; color: inherit; font: inherit; text-align: left; padding: 14px 14px 18px; border-radius: 16px; cursor: pointer; }
+.rail button::after { content: ''; position: absolute; left: 14px; right: 14px; bottom: 8px; height: 2px; border-radius: 2px; background: var(--figure); transform: scaleX(0); transform-origin: left; }
+.rail button.is-on::after { transform: scaleX(0); }
 .rail.is-auto button.is-on::after { transform: scaleX(0); animation: fill var(--dur, 9s) linear forwards; }
 .rail-num { font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums; transition: color .2s; }
 .rail-name { display: block; margin-top: 8px; font: 700 clamp(15px, 1.5vw, 20px)/1.15 var(--display); letter-spacing: -.03em; color: var(--muted); transition: color .2s; }
@@ -270,9 +270,9 @@ h2 { font: 700 clamp(34px, 5vw, 68px)/1 var(--display); letter-spacing: -.04em; 
 
 @media (min-width: 861px) {
   .st-stack { display: grid; }
-  .st { grid-area: 1 / 1; opacity: 0; visibility: hidden; transform: translateY(40px); transition: opacity .45s, transform .6s cubic-bezier(.2,.7,.2,1), visibility 0s .6s; }
-  .st.is-on { opacity: 1; visibility: visible; transform: none; transition: opacity .45s, transform .6s cubic-bezier(.2,.7,.2,1); }
-  .st.is-past { transform: translateY(-40px); }
+  .st { grid-area: 1 / 1; opacity: 0; visibility: hidden; transform: translateX(60px); filter: blur(4px); transition: opacity .3s, transform var(--sp-st, .6s ease), filter var(--sp-st, .6s ease), visibility 0s .6s; }
+  .st.is-on { opacity: 1; visibility: visible; transform: none; filter: none; transition: opacity .35s, transform var(--sp-st, .6s ease), filter var(--sp-st, .6s ease); }
+  .st.is-past { transform: translateX(-60px); }
   .st-num { display: none; }
 }
 @media (max-width: 860px) {
@@ -614,6 +614,11 @@ body { --cut: var(--paper); }
 .tw-bot { align-self: flex-start; background: var(--chip); border-bottom-left-radius: 6px; }
 .tw-me { align-self: flex-end; background: var(--blue); color: #fff; border-bottom-right-radius: 6px; }
 .tw-msg.is-typing > :last-child::after { content: '▍'; margin-left: 2px; color: var(--figure); animation: tw-blink .8s steps(1) infinite; }
+/* ответ двойника пишется по словам, каретка со свечением едет за последним словом */
+.tw-msg.is-gen { position: relative; }
+.tw-w { display: inline-block; }
+.tw-caret { position: absolute; left: 0; top: 0; width: .42em; border-radius: 999px; background: linear-gradient(180deg, #3a3a3e, var(--figure)); box-shadow: 0 0 14px rgba(10,10,11,.35); opacity: 0; scale: 1 .72; pointer-events: none; transition: transform .14s cubic-bezier(.2,.8,.2,1), height .14s, opacity .3s; }
+.tw-caret.is-on { opacity: 1; }
 .tw-tg { display: inline-flex; align-items: center; gap: 8px; margin-top: 12px; padding: 9px 14px; border-radius: 999px; background: var(--blue); color: #fff !important; text-decoration: none; font-weight: 600; font-size: 15px; }
 .tw-tg svg { width: 18px; height: 18px; }
 .tw-dots { display: inline-flex; gap: 5px; padding: 6px 2px; }
@@ -765,7 +770,13 @@ body { --cut: var(--paper); }
 .teaser h2 { margin-bottom: 28px; }
 .teaser-facts { list-style: none; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px; }
 .teaser-facts strong { display: block; font: 800 clamp(36px, 4.4vw, 60px)/1 var(--display); letter-spacing: -.05em; color: var(--figure); }
-.teaser-facts span { display: block; margin-top: 8px; font-size: 15px; line-height: 1.4; color: var(--muted); }
+.teaser-facts > li > span { display: block; margin-top: 8px; font-size: 15px; line-height: 1.4; color: var(--muted); }
+/* докрутка чисел: старое и новое значение лежат в одной клетке, пока одно уходит, а другое въезжает */
+.teaser-facts .cd { display: inline-grid; justify-items: start; font-variant-numeric: tabular-nums; }
+.teaser-facts .cd > span { grid-area: 1 / 1; }
+.teaser-facts.is-waiting > li { opacity: 0; }
+/* абзацы, которые проявляются при прокрутке */
+[data-reveal] .rv { display: inline-block; will-change: transform, filter; }
 .teaser .btn { padding: 18px 26px; font-size: 17px; }
 .teaser .btn svg { transition: transform .2s; }
 .teaser .btn:hover svg { transform: translateX(3px); }

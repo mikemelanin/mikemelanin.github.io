@@ -27,6 +27,20 @@
   if (set) { const copy = set.cloneNode(true); copy.setAttribute('aria-hidden', 'true'); set.after(copy); }
 
   const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // пружина как в framer-motion (масса 1): кривая linear() для CSS и WAAPI и её длительность в мс
+  const springEase = (k, c) => {
+    let x = 0, v = 0, t = 0;
+    const pts = [];
+    while (t < 2 && (t < 0.1 || Math.abs(1 - x) > 0.001 || Math.abs(v) > 0.01)) {
+      pts.push(+x.toFixed(4));
+      for (let i = 0; i < 16; i++) { v += (k * (1 - x) - c * v) / 960; x += v / 960; }
+      t += 1 / 60;
+    }
+    pts.push(1);
+    const ok = window.CSS && CSS.supports('animation-timing-function', 'linear(0, 1)');
+    return { duration: Math.round(t * 1000), easing: ok ? `linear(${pts.join(', ')})` : 'cubic-bezier(.2,.9,.3,1)' };
+  };
+  window.mmSpring = springEase;
   const onView = (el, fn, opts) => {
     if (!el) return;
     if (!('IntersectionObserver' in window)) return fn(true);
@@ -135,19 +149,7 @@
     const WORDS = ['банки', 'ритейл', 'фарму', 'страхование', 'телеком', 'FMCG', 'бизнес'];
     let idx = 0, heroVis = true, last = 0, busy = false;
     // пружины как в framer-motion: слово – жёсткость 260 и затухание 26, ширина окошка – 300 и 30
-    const spring = (k, c) => {
-      let x = 0, v = 0, t = 0;
-      const pts = [];
-      while (t < 2 && (t < 0.1 || Math.abs(1 - x) > 0.001 || Math.abs(v) > 0.01)) {
-        pts.push(+x.toFixed(4));
-        for (let i = 0; i < 16; i++) { v += (k * (1 - x) - c * v) / 960; x += v / 960; }
-        t += 1 / 60;
-      }
-      pts.push(1);
-      const ok = CSS.supports('animation-timing-function', 'linear(0, 1)');
-      return { duration: Math.round(t * 1000), easing: ok ? `linear(${pts.join(', ')})` : 'cubic-bezier(.2,.9,.3,1)' };
-    };
-    const WORD = spring(260, 26), WIDTH = spring(300, 30);
+    const WORD = springEase(260, 26), WIDTH = springEase(300, 30);
     // старое слово уезжает вверх и расплывается, новое въезжает снизу из размытия, окошко подстраивает ширину
     const roll = async (text) => {
       const old = word.querySelector('.slot-i:not(.is-out)');
@@ -337,12 +339,30 @@
     const railEl = story.querySelector('.rail');
     const DURS = [15000, 14000, 34000, 12000];
     rail.forEach((b, i) => b.style.setProperty('--dur', DURS[i] / 1000 + 's'));
+    // плашка под активной вкладкой переезжает пружиной, шаги въезжают сбоку из лёгкого размытия
+    const sp = (k, c) => { const e = springEase(k, c); return e.duration + 'ms ' + e.easing; };
+    story.style.setProperty('--sp-pill', sp(420, 32));
+    story.style.setProperty('--sp-st', sp(320, 32));
+    const pill = document.createElement('span');
+    pill.className = 'rail-pill';
+    pill.setAttribute('aria-hidden', 'true');
+    railEl.prepend(pill);
+    const placePill = jump => {
+      const b = rail[Math.max(0, active)];
+      if (!b) return;
+      if (jump) pill.style.transition = 'none';
+      pill.style.width = b.offsetWidth + 'px';
+      pill.style.transform = `translateX(${b.offsetLeft}px)`;
+      if (jump) { pill.offsetWidth; pill.style.transition = ''; }
+    };
+    addEventListener('resize', () => placePill(true));
     const setActive = (i, force) => {
       if (i === active && !force) return;
       active = i;
       sts.forEach((s, j) => { activate(s, false); s.classList.toggle('is-past', j < i); });
       activate(sts[i], true, inView);
       rail.forEach((b, j) => b.classList.toggle('is-on', j === i));
+      placePill(!pill.style.width);
     };
     const run = () => {
       clearTimeout(timer);
@@ -381,5 +401,109 @@
     };
     desk.addEventListener ? desk.addEventListener('change', mode) : desk.addListener(mode);
     mode();
+  }
+
+  // факты: карточки всплывают по очереди, числа докручиваются – каждое новое значение въезжает снизу из размытия
+  const facts = document.querySelector('.teaser-facts');
+  if (facts && !still) {
+    const items = [...facts.children];
+    const nums = items.map(li => {
+      const st = li.querySelector('strong');
+      const m = st.textContent.match(/^(\D*)(\d+)(.*)$/);
+      if (!m) return null;
+      st.innerHTML = '';
+      const box = document.createElement('span');
+      box.className = 'cd';
+      const cur = document.createElement('span');
+      cur.textContent = '0';
+      box.append(cur);
+      const shown = document.createElement('span'), sr = document.createElement('span');
+      shown.setAttribute('aria-hidden', 'true');
+      shown.append(m[1], box, m[3].replace(/^ /, '\u00a0'));
+      sr.className = 'sr-only';
+      sr.textContent = m[1] + m[2] + m[3];
+      st.append(sr, shown);
+      return { box, to: +m[2] };
+    });
+    facts.classList.add('is-waiting');
+    const roll = (box, text) => {
+      const old = box.lastElementChild, next = document.createElement('span');
+      next.textContent = text;
+      box.append(next);
+      const blur = 'blur(4px)', fx = { duration: 250, easing: 'ease-out' };
+      old.animate([{ transform: 'none', opacity: 1, filter: 'blur(0)' }, { transform: 'translateY(-.2em)', opacity: 0, filter: blur }], fx).finished.then(() => old.remove());
+      next.animate([{ transform: 'translateY(.2em)', opacity: 0, filter: blur }, { transform: 'none', opacity: 1, filter: 'blur(0)' }], fx);
+    };
+    let played = false;
+    onView(facts, v => {
+      if (!v || played) return;
+      played = true;
+      facts.classList.remove('is-waiting');
+      items.forEach((li, i) => li.animate([{ opacity: 0, transform: 'translateY(12px) scale(.98)' }, { opacity: 1, transform: 'none' }], { duration: 350, delay: i * 55, easing: 'ease-out', fill: 'backwards' }));
+      nums.forEach((n, i) => {
+        if (!n) return;
+        // значения разгоняются и тормозят к цели, без повторов
+        const steps = Math.min(n.to, 14), seen = new Set(['0']), vals = [];
+        for (let k = 1; k <= steps; k++) {
+          const e = 1 - Math.pow(1 - k / steps, 3);
+          let v = Math.round(n.to * e);
+          if (n.to >= 100) v = Math.round(v / 10) * 10;
+          const t = String(k === steps ? n.to : v);
+          if (!seen.has(t)) { seen.add(t); vals.push(t); }
+        }
+        vals.forEach((t, k) => setTimeout(() => roll(n.box, t), 200 + i * 55 + k * 95));
+      });
+    }, { threshold: .5 });
+  }
+
+  // абзацы, которые читаются при прокрутке: слово поднимается из размытия и темнеет от светло-серого до своего цвета
+  const reads = [...document.querySelectorAll('[data-reveal]')];
+  if (reads.length && !still) {
+    const MUTED = [210, 210, 215];
+    const items = reads.map(el => {
+      const end = getComputedStyle(el).color.match(/\d+(\.\d+)?/g).slice(0, 3).map(Number);
+      const words = el.textContent.trim().split(/\s+/);
+      const esc = t => t.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+      el.innerHTML = `<span class="sr-only">${esc(words.join(' '))}</span>` + words.map(w => `<span class="rv" aria-hidden="true">${esc(w)}</span>`).join(' ');
+      const spans = [...el.querySelectorAll('.rv')];
+      // окна слов внахлёст, как stagger .65 в оригинале: каждое слово занимает свой отрезок пути
+      const start = 0.05, stop = 0.6, n = spans.length, total = stop - start;
+      const win = total * (1 - (0.65 * (n - 1)) / n), step = n > 1 ? (total - win) / (n - 1) : 0;
+      return { el, end, spans, ranges: spans.map((_, i) => [start + i * step, start + i * step + win]), cur: -1, pos: 0, vel: 0 };
+    });
+    const target = it => {
+      const r = it.el.getBoundingClientRect(), vh = innerHeight;
+      return Math.max(0, Math.min(1, (vh - r.top) / (vh + r.height)));
+    };
+    const paint = it => {
+      it.spans.forEach((sp, i) => {
+        const [a, b] = it.ranges[i], t = Math.max(0, Math.min(1, (it.pos - a) / (b - a)));
+        const c = MUTED.map((m, k) => Math.round(m + (it.end[k] - m) * t));
+        sp.style.color = `rgb(${c})`;
+        sp.style.transform = t < 1 ? `translateY(${((1 - t) * 0.32).toFixed(3)}em)` : '';
+        sp.style.filter = t < 1 ? `blur(${((1 - t) * 6).toFixed(2)}px)` : '';
+      });
+    };
+    // прокрутка сглажена пружиной (жёсткость 110, затухание 22, масса 0.7), поэтому резкий рывок доигрывается плавно
+    let raf = 0, prev = 0;
+    const frame = now => {
+      const dt = Math.min(0.05, (now - prev) / 1000 || 0.016);
+      prev = now;
+      let moving = false;
+      items.forEach(it => {
+        const goal = target(it);
+        for (let i = 0; i < 4; i++) {
+          const h = dt / 4, acc = (110 * (goal - it.pos) - 22 * it.vel) / 0.7;
+          it.vel += acc * h; it.pos += it.vel * h;
+        }
+        if (Math.abs(goal - it.pos) < 0.0005 && Math.abs(it.vel) < 0.001) { it.pos = goal; it.vel = 0; } else moving = true;
+        paint(it);
+      });
+      raf = moving ? requestAnimationFrame(frame) : 0;
+    };
+    const kick = () => { if (!raf) { prev = performance.now(); raf = requestAnimationFrame(frame); } };
+    items.forEach(it => { it.pos = target(it); paint(it); });
+    addEventListener('scroll', kick, { passive: true });
+    addEventListener('resize', kick);
   }
 })();

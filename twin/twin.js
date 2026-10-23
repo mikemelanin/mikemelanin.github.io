@@ -79,20 +79,56 @@
   };
 
   const wait = ms => new Promise(r => setTimeout(r, ms));
+  // ответ проявляется, как будто его пишет модель: каждое слово поднимается из размытия с лёгким перелётом,
+  // а светящаяся каретка едет по последнему появившемуся слову
+  const WORD = window.mmSpring ? window.mmSpring(171, 13.6) : { duration: 480, easing: 'cubic-bezier(.2,.9,.3,1.2)' };
   const type = async el => {
     if (still) return;
     const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
     const nodes = [];
-    while (walker.nextNode()) nodes.push([walker.currentNode, walker.currentNode.textContent]);
-    nodes.forEach(([n]) => n.textContent = '');
-    el.classList.add('is-typing');
-    for (const [n, full] of nodes) {
-      for (let i = 0; i < full.length; i += 3) {
-        n.textContent = full.slice(0, i + 3);
-        if (i % 24 === 0) { scrollDown(); await wait(14); }
-      }
+    while (walker.nextNode()) nodes.push(walker.currentNode);
+    const words = [];
+    nodes.forEach(n => {
+      const frag = document.createDocumentFragment();
+      n.textContent.split(/(\s+)/).forEach(part => {
+        if (!part) return;
+        if (/^\s+$/.test(part)) { frag.append(part); return; }
+        const w = document.createElement('span');
+        w.className = 'tw-w';
+        w.textContent = part;
+        words.push(w);
+        frag.append(w);
+      });
+      n.replaceWith(frag);
+    });
+    if (!words.length) return;
+    const caret = document.createElement('span');
+    caret.className = 'tw-caret';
+    caret.setAttribute('aria-hidden', 'true');
+    el.append(caret);
+    el.classList.add('is-gen');
+    const gap = Math.min(60, 2400 / words.length);
+    words.forEach((w, i) => w.animate([
+      { opacity: 0, transform: 'translateY(.42em)', filter: 'blur(9px)' },
+      { opacity: 1, offset: 0.7 },
+      { opacity: 1, transform: 'none', filter: 'blur(0)' }
+    ], { duration: WORD.duration, easing: WORD.easing, delay: i * gap, fill: 'backwards' }));
+    const place = w => {
+      caret.style.height = w.offsetHeight + 'px';
+      caret.style.transform = `translate(${w.offsetLeft + w.offsetWidth + 3}px, ${w.offsetTop}px)`;
+    };
+    place(words[0]);
+    caret.offsetWidth;
+    caret.classList.add('is-on');
+    for (let i = 0; i < words.length; i++) {
+      place(words[i]);
+      if (i % 6 === 0) scrollDown();
+      await wait(gap);
     }
-    el.classList.remove('is-typing');
+    caret.classList.remove('is-on');
+    await wait(WORD.duration);
+    caret.remove();
+    el.classList.remove('is-gen');
     scrollDown();
   };
 
