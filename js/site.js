@@ -128,20 +128,16 @@
   // gravel route: freeze for reduced motion
   if (still) document.querySelectorAll('.route animateMotion').forEach(m => { const c = m.parentNode; m.remove(); c.setAttribute('cx', 6); c.setAttribute('cy', 54); });
 
-  // hero: rolling word (auto + click to step)
+  // hero: rolling industry (auto + click to step)
   const slot = document.querySelector('.slot');
   if (slot) {
     const word = slot.querySelector('.slot-w');
-          const WORDS = ['слайдов', 'демо', 'пилота', 'production'];
-    const LAST = WORDS.length - 1;
-    const wait = ms => new Promise(r => setTimeout(r, ms));
-    let idx = LAST, gen = 0, heroVis = true, last = 0;
-    const win = on => slot.classList.toggle('is-win', on);
+    const WORDS = ['бизнес', 'банки', 'ритейл', 'фарму', 'страхование', 'телеком', 'FMCG'];
+    let idx = 0, heroVis = true, last = 0, busy = false;
     const roll = async (text) => {
       word.style.width = word.getBoundingClientRect().width + 'px';
       await word.animate([{ transform: 'none', opacity: 1 }, { transform: 'translateY(-80%)', opacity: 0 }], { duration: 200, easing: 'cubic-bezier(.5,0,.75,0)' }).finished;
       word.textContent = text;
-      slot.classList.remove('is-struck');
       const from = word.style.width;
       word.style.width = 'auto';
       const to = word.getBoundingClientRect().width;
@@ -151,42 +147,23 @@
       await word.animate([{ transform: 'translateY(80%)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 380, easing: 'cubic-bezier(.2,.8,.2,1)' }).finished;
     };
     word.addEventListener('transitionend', e => { if (e.propertyName === 'width') word.style.width = ''; });
-    const go = async (i, my) => {
-      idx = i;
-      win(false);
-      if (word.textContent !== WORDS[i]) await roll(WORDS[i]);
-      else slot.classList.remove('is-struck');
-      if (my !== gen) return;
-      if (i === LAST) return win(true);
-      await wait(500);
-      if (my !== gen) return;
-      slot.classList.add('is-struck');
-    };
-    const cycle = async () => {
-      const my = ++gen;
+    const step = async () => {
+      if (busy) return;
+      busy = true;
       last = Date.now();
-      for (let i = 0; i < WORDS.length; i++) {
-        await go(i, my);
-        if (my !== gen) return;
-        if (i < LAST) await wait(650);
-        if (my !== gen) return;
-      }
+      idx = (idx + 1) % WORDS.length;
+      await roll(WORDS[idx]);
+      busy = false;
     };
-    const step = () => { const my = ++gen; last = Date.now(); go((idx + 1) % WORDS.length, my); };
     slot.addEventListener('click', step);
-    const loop = () => setInterval(() => {
-      if (heroVis && !document.hidden && Date.now() - last > 9000) cycle();
-    }, 1000);
     if (!still) {
-      word.textContent = WORDS[0];
-      idx = 0;
       window.__intro = () => {
         onView(slot, v => heroVis = v, { threshold: 0 });
-        wait(1300).then(cycle);
-        loop();
+        last = Date.now();
+        setInterval(() => {
+          if (heroVis && !document.hidden && Date.now() - last > 2000) step();
+        }, 250);
       };
-    } else {
-      win(true);
     }
   }
 
@@ -211,12 +188,12 @@
             d.style.setProperty('--x', 8 + Math.random() * 84);
             d.style.setProperty('--y', 8 + Math.random() * 84);
           });
-          later(() => { stage.classList.add('is-scan'); later(sort, 900); }, 1700);
+          later(() => { stage.classList.add('is-scan'); later(sort, 1400); }, 2600);
         };
         const sort = () => {
           stage.classList.add('is-sorted');
-          later(() => { count.innerHTML = COUNT; }, 1100);
-          later(scatter, 5200);
+          later(() => { count.innerHTML = COUNT; }, 1700);
+          later(scatter, 8000);
         };
         scatter();
         return () => { alive = false; clearTimeout(timer); stage.classList.remove('is-scan'); stage.classList.add('is-sorted'); count.innerHTML = COUNT; };
@@ -247,9 +224,9 @@
             if (!alive) return;
             hot(path[s]);
             s++;
-            timer = s < path.length ? setTimeout(next, 420) : setTimeout(run, 900);
+            timer = s < path.length ? setTimeout(next, 750) : setTimeout(run, 1800);
           };
-          timer = setTimeout(next, 300);
+          timer = setTimeout(next, 500);
         };
         run();
         return () => { alive = false; clearTimeout(timer); hot([]); arch.classList.remove('is-live'); q.textContent = Q0; };
@@ -292,10 +269,10 @@
                 const tick = () => {
                   k++;
                   m.innerHTML = words.slice(0, k).join(' ').replace('¹', '<sup>1</sup>') + (k < words.length ? '<span class="cur"></span>' : '');
-                  if (k < words.length) later(tick, 55);
+                  if (k < words.length) later(tick, 75);
                   else later(() => {
                     el('poc-meta', x.meta.map(s => '<b>' + s + '</b>').join(''));
-                    later(() => show((cur + 1) % QA.length), 4200);
+                    later(() => show((cur + 1) % QA.length), 5500);
                   }, 250);
                 };
                 later(tick, 300);
@@ -322,8 +299,8 @@
           draw();
           n += 3 + Math.floor(Math.random() * 9);
           cnt.textContent = n.toLocaleString('ru-RU');
-          lat.textContent = (1.1 + Math.random() * .25).toFixed(1).replace('.', '.') + ' s';
-        }, 700);
+          lat.textContent = (1.1 + Math.random() * .25).toFixed(1).replace('.', ',') + ' с';
+        }, 1200);
         return () => clearInterval(id);
       }
     };
@@ -338,7 +315,7 @@
 
     let active = -1, timer = null, inView = false, held = false;
     const railEl = story.querySelector('.rail');
-    const DURS = [9000, 9000, 26000, 9000];
+    const DURS = [15000, 14000, 34000, 12000];
     rail.forEach((b, i) => b.style.setProperty('--dur', DURS[i] / 1000 + 's'));
     const setActive = (i, force) => {
       if (i === active && !force) return;
