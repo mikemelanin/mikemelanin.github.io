@@ -296,11 +296,21 @@ void main(){
     const onLeave = e => { if (!e.relatedTarget) { ptr.has = false; if (ptr.inside && !running) start(); } };
     const onBlur = () => { ptr.has = false; if (ptr.inside && !running) start(); };
     const onScroll = () => wake();
+    // на телефоне курсора нет: щупальца тянутся к пальцу, пока он касается экрана, даже во время
+    // прокрутки (touch-события в отличие от pointer не обрываются, когда страница начинает ехать)
+    const onTouch = e => {
+      const t = e.touches[0];
+      if (!t) { ptr.has = false; if (ptr.inside && !running) start(); return; }
+      ptr.cx = t.clientX; ptr.cy = t.clientY; ptr.has = true;
+      wake();
+    };
+    const TOUCH = ['touchstart', 'touchmove', 'touchend', 'touchcancel'];
     if (!reduced) {
       addEventListener('pointermove', onMove, { passive: true });
       document.addEventListener('pointerout', onLeave);
       addEventListener('blur', onBlur);
       addEventListener('scroll', onScroll, { passive: true });
+      TOUCH.forEach(n => addEventListener(n, onTouch, { passive: true }));
     }
 
     const me = { hide: false };
@@ -721,6 +731,7 @@ void main(){
       stop(); ro.disconnect(); io.disconnect();
       removeEventListener('pointermove', onMove); document.removeEventListener('pointerout', onLeave);
       removeEventListener('blur', onBlur); removeEventListener('scroll', onScroll);
+      TOUCH.forEach(n => removeEventListener(n, onTouch));
       cvGl.removeEventListener('webglcontextlost', onLost); cvGl.removeEventListener('webglcontextrestored', onRestored);
       live.delete(me); syncCursor();
       if (gl && !dead) { gl.deleteBuffer(quad); gl.deleteProgram(prog); shaders.forEach(s => gl.deleteShader(s)); }
