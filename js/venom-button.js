@@ -65,8 +65,10 @@ void main(){
   vec2 p = vec2(gl_FragCoord.x, uRes.y - gl_FragCoord.y) / uDpr;
   vec2 f = field(p);
   float th = max(f.y, .5);
-  float s = clamp(-f.x / th, 0., 1.);
-  float h = th * sqrt(1. - (1. - s) * (1. - s));
+  // подушка: край скругляется на ~11px, середина почти плоская с лёгким куполом – блик собирается в тонкий ободок
+  float rr = min(th, 11.);
+  float s = clamp(-f.x / rr, 0., 1.), s2 = clamp(-f.x / th, 0., 1.);
+  float h = rr * sqrt(1. - (1. - s) * (1. - s)) + .18 * th * sqrt(1. - (1. - s2) * (1. - s2));
   vec2 g = vec2(dFdx(h), -dFdy(h)) * uDpr;
   vec3 n = normalize(vec3(-g, 1.));
   vec3 r = vec3(0., 0., -1.) + 2. * n.z * n;
