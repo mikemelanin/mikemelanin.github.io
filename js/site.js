@@ -116,7 +116,7 @@
   // hero: speech bubble on the portrait leads to the AI twin
   const talk = document.querySelector('.portrait-talk');
   if (talk) {
-    const say = () => { talk.classList.add('is-on'); setTimeout(() => talk.classList.add('is-said'), still ? 0 : 1200); };
+    const say = () => talk.classList.add('is-on');
     setTimeout(say, still ? 0 : 2600);
     talk.addEventListener('click', e => {
       e.preventDefault();

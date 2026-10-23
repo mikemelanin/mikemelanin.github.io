@@ -105,40 +105,28 @@ img { display: block; max-width: 100%; }
 .cta-row { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 32px; }
 
 .portrait { grid-column: 2; grid-row: 1 / span 2; position: relative; z-index: 1; align-self: end; }
-.portrait-frame {
-  position: relative; aspect-ratio: 4 / 5; overflow: hidden;
-  border-radius: 200px 200px 16px 16px;
-  background: #3a3a3a;
-}
+/* портрет – скетч тушью на прозрачном фоне, стоит прямо на фоне сайта; края свитера растворяются */
+.portrait-frame { position: relative; aspect-ratio: 4 / 5; }
 .portrait-frame img {
-  width: 100%; height: 100%; object-fit: cover; object-position: 50% 20%;
-}
-.portrait-frame::after {
-  content: ''; position: absolute; inset: 0;
-  background: linear-gradient(180deg, transparent 60%, rgba(0,0,0,.55));
-  pointer-events: none;
+  width: 100%; height: 100%; object-fit: cover; object-position: 50% 100%;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 9%, #000 91%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 9%, #000 91%, transparent);
 }
 .portrait-talk {
-  position: absolute; left: 16px; right: 16px; bottom: 16px; z-index: 2;
-  display: block; padding: 12px 16px; border-radius: 18px 18px 18px 4px;
-  background: #fff; color: var(--ink-fixed, #0A0C26); text-decoration: none;
-  font-size: 15px; font-weight: 500; line-height: 1.35;
-  box-shadow: 0 16px 40px -16px rgba(0,0,0,.55);
-  opacity: 0; transform: translateY(10px) scale(.96); transform-origin: 0 100%;
+  position: absolute; left: 50%; bottom: 18px; z-index: 2; translate: -50% 0;
+  display: inline-flex; align-items: center; white-space: nowrap;
+  padding: 10px 16px; border-radius: 999px;
+  background: #fff; color: var(--ink); text-decoration: none;
+  font-size: 14px; font-weight: 600; line-height: 1;
+  box-shadow: 0 10px 26px -12px rgba(0,0,0,.5);
+  opacity: 0; transform: translateY(10px) scale(.96); transform-origin: 50% 100%;
   transition: opacity .35s, transform .45s cubic-bezier(.3,1.5,.5,1);
 }
 .portrait-talk.is-on { opacity: 1; transform: none; }
 .portrait-talk:hover { transform: translateY(-2px); }
-.portrait-talk svg { display: inline-block; width: 16px; height: 16px; margin-left: 6px; vertical-align: -3px; color: var(--blue); transition: transform .2s; }
+.portrait-talk svg { display: inline-block; width: 15px; height: 15px; margin-left: 6px; vertical-align: -3px; transition: transform .2s; }
 .portrait-talk:hover svg { transform: translateX(3px); }
-.portrait-talk .live-dot { display: inline-block; width: 9px; height: 9px; margin-right: 8px; vertical-align: 1px; animation: live 1.6s ease-in-out infinite; }
-.pt-text { display: none; }
-.portrait-talk.is-said .pt-text { display: inline; }
-.portrait-talk.is-said .pt-dots { display: none; }
-.pt-dots { display: inline-flex; gap: 5px; padding: 5px 0; }
-.pt-dots i { width: 7px; height: 7px; border-radius: 50%; background: #9aa0c0; animation: tw-dot 1s ease-in-out infinite; }
-.pt-dots i:nth-child(2) { animation-delay: .15s; }
-.pt-dots i:nth-child(3) { animation-delay: .3s; }
+.portrait-talk .live-dot { display: inline-block; width: 8px; height: 8px; margin-right: 9px; animation: live 1.6s ease-in-out infinite; }
 .live-dot { width: 10px; height: 10px; border-radius: 50%; background: #7CF29C; box-shadow: 0 0 0 4px rgba(124,242,156,.25); flex: none; }
 
 /* ---------- marquee ---------- */
@@ -815,12 +803,12 @@ body { --cut: var(--paper); }
 /* ---------- load sequence ---------- */
 .js .hero h1 .line > span { transform: translateY(105%); }
 .js .hero .reveal { opacity: 0; transform: translateY(16px); }
-.js .portrait-frame { clip-path: inset(100% 0 0 0 round 200px 200px 16px 16px); }
+.js .portrait-frame { clip-path: inset(100% 0 0 0); }
 .loaded .hero h1 .line > span { transform: none; transition: transform .9s cubic-bezier(.2,.75,.15,1); }
 .loaded .hero h1 .line:nth-child(2) > span { transition-delay: .08s; }
 .loaded .hero h1 .line:nth-child(3) > span { transition-delay: .16s; }
 .loaded .hero .reveal { opacity: 1; transform: none; transition: opacity .7s ease .45s, transform .7s ease .45s; }
-.loaded .portrait-frame { clip-path: inset(0 0 0 0 round 200px 200px 16px 16px); transition: clip-path 1.1s cubic-bezier(.7,0,.2,1) .15s; }
+.loaded .portrait-frame { clip-path: inset(-40px 0 0 0); transition: clip-path 1.1s cubic-bezier(.7,0,.2,1) .15s; }
 
 @media (prefers-reduced-motion: reduce) {
   .chat-form, .chat-hint::before { animation: none; }
@@ -854,12 +842,10 @@ body { --cut: var(--paper); }
 @media (max-width: 860px) {
   .hero-grid { grid-template-columns: 1fr; padding-top: 12px; }
   .portrait { grid-column: 1; grid-row: 1; max-width: 230px; margin-bottom: 28px; }
-  .portrait-talk { left: 10px; right: 10px; bottom: 10px; padding: 9px 12px; font-size: 13px; }
+  .portrait-talk { bottom: 10px; padding: 8px 13px; font-size: 13px; }
   .hero h1 { grid-row: 2; }
   .hero-text { grid-row: 3; }
-  .portrait-frame { aspect-ratio: 1 / 1; border-radius: 150px 150px 16px 16px; }
-  .js .portrait-frame { clip-path: inset(100% 0 0 0 round 150px 150px 16px 16px); }
-  .loaded .portrait-frame { clip-path: inset(0 0 0 0 round 150px 150px 16px 16px); }
+  .portrait-frame { aspect-ratio: 1 / 1; }
   .sec-head, .panel, .case { grid-template-columns: 1fr; }
   .stack, .more { grid-template-columns: 1fr; }
   .tl-preview { grid-template-columns: 1fr; margin-top: -16px; min-height: 0; }
