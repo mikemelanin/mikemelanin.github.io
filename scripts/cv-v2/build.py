@@ -15,7 +15,10 @@ for m in re.finditer(r'<span class="logo"', src):
     wm = re.search(r'<span class="wm">([^<]+)</span>', sp)
     key = lab.group(1) if lab else (wm.group(1).strip() if wm else None)
     if key: logos.setdefault(key, sp)
-t = (root / 'scripts/cv-v2/template.html').read_text(encoding='utf-8')
+# на сайте у red_mad_robot заглушка, здесь – настоящий логотип из брендбука
+rmr = (root / 'scripts/cv-v2/rmr-logo.svg').read_text(encoding='utf-8').strip()
+logos['red_mad_robot'] = f'<span class="logo" role="img" aria-label="red_mad_robot">{rmr}</span>'
+t =(root / 'scripts/cv-v2/template.html').read_text(encoding='utf-8')
 t = re.sub(r'\{\{logo:([^}]+)\}\}', lambda m: logos[m.group(1)], t)
 t = re.sub(r'\{\{svg:([^}]+)\}\}', lambda m: re.search(r'<svg.*?</svg>', logos[m.group(1)], re.S).group(0), t)
 assert '{{' not in t
