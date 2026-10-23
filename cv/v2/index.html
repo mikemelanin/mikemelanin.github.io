@@ -45,20 +45,20 @@ img { display: block; max-width: 100%; }
 /* ---------- шапка ---------- */
 .head { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 28px; align-items: start; padding-bottom: 24px; border-bottom: 1px solid var(--line); }
 .name { font: 700 15px/1.2 var(--display); letter-spacing: -.01em; margin-bottom: 14px; }
-.pos { font: 800 34px/1.04 var(--display); letter-spacing: -.045em; margin-bottom: 14px; }
+.pos { font: 800 30px/1.06 var(--display); letter-spacing: -.045em; margin-bottom: 14px; }
 .lede { font-size: 16px; color: var(--muted); max-width: 34em; }
 .lede strong { color: var(--ink); font-weight: 600; }
 .contacts { margin-top: 14px; display: flex; flex-wrap: wrap; gap: 4px 18px; font-size: 14px; font-weight: 500; }
 .contacts a { text-decoration: none; border-bottom: 1px solid var(--line); }
 .photo { width: 112px; height: 112px; object-fit: cover; border-radius: 14px; filter: grayscale(100%); }
 
-/* ---------- цифры ---------- */
-.figs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-bottom: 1px solid var(--line); }
-.fig { padding: 20px 16px 20px 0; }
-.fig + .fig { padding-left: 16px; border-left: 1px solid var(--line); }
-.fig b { display: block; font: 800 28px/1 var(--display); letter-spacing: -.05em; white-space: nowrap; }
-.fig b small { font-size: .5em; letter-spacing: -.03em; margin-left: .15em; }
-.fig span { display: block; margin-top: 8px; font-size: 13px; line-height: 1.35; color: var(--muted); }
+/* ---------- ключевые результаты ---------- */
+.wins { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.win { padding: 16px 16px 16px 0; }
+.win + .win { padding-left: 16px; border-left: 1px solid var(--line); }
+.win b { display: block; font: 800 28px/1 var(--display); letter-spacing: -.05em; white-space: nowrap; }
+.win b small { font-size: .5em; letter-spacing: -.03em; margin-left: .15em; }
+.win p { margin-top: 8px; font-size: 13.5px; line-height: 1.4; color: var(--muted); }
 
 /* ---------- что решаю ---------- */
 h2 { font: 700 17px/1.2 var(--display); letter-spacing: -.03em; margin: 28px 0 14px; }
@@ -67,6 +67,7 @@ h2 { font: 700 17px/1.2 var(--display); letter-spacing: -.03em; margin: 28px 0 1
 .solve b { display: block; color: var(--ink); font-weight: 600; font-size: 15px; margin-bottom: 4px; }
 
 /* ---------- полоска опыта ---------- */
+.track { font-size: 14px; color: var(--muted); margin: -6px 0 12px; }
 .tl { margin: 4px 0 6px; }
 .tl-eras, .tl-track { position: relative; }
 .tl-eras { height: 18px; }
@@ -140,9 +141,8 @@ h2 { font: 700 17px/1.2 var(--display); letter-spacing: -.03em; margin: 28px 0 1
   .head { grid-template-columns: 1fr; }
   .photo { order: -1; width: 84px; height: 84px; }
   .pos { font-size: 26px; }
-  .figs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .fig:nth-child(3) { padding-left: 0; border-left: 0; }
-  .fig:nth-child(n+3) { border-top: 1px solid var(--line); }
+  .wins { grid-template-columns: 1fr; }
+  .win + .win { padding-left: 0; border-left: 0; border-top: 1px solid var(--line); }
   .solve, .stack, .more { grid-template-columns: 1fr; }
   .tl { overflow-x: auto; }
   .tl-inner { min-width: 620px; }
@@ -157,16 +157,17 @@ h2 { font: 700 17px/1.2 var(--display); letter-spacing: -.03em; margin: 28px 0 1
   .page { max-width: none; padding: 0; border-radius: 0; zoom: .85; }
   .head { padding-bottom: 12pt; gap: 16pt; }
   .name { font-size: 10pt; margin-bottom: 8pt; }
-  .pos { font-size: 21pt; margin-bottom: 8pt; }
+  .pos { font-size: 17.5pt; margin-bottom: 8pt; }
   .lede { font-size: 9.6pt; }
   .contacts { font-size: 8.6pt; margin-top: 8pt; }
   .photo { width: 70pt; height: 70pt; border-radius: 9pt; }
-  .fig { padding-top: 10pt; padding-bottom: 10pt; }
-  .fig b { font-size: 17pt; }
-  .fig span { font-size: 7.8pt; margin-top: 5pt; }
+  .win { padding-top: 9pt; padding-bottom: 9pt; }
+  .win b { font-size: 17pt; }
+  .win p { font-size: 8.3pt; margin-top: 5pt; }
   h2 { font-size: 10.5pt; margin: 14pt 0 8pt; }
   .solve div { font-size: 8.4pt; padding: 8pt 10pt; border-radius: 8pt; }
   .solve b { font-size: 9pt; }
+  .track { font-size: 8.6pt; margin: -4pt 0 7pt; }
   .tl-eras { height: 12pt; }
   .tl-eras span, .tl-years { font-size: 7pt; }
   .tl-track { height: 17pt; margin: 3pt 0 4pt; }
@@ -223,8 +224,8 @@ h2 { font: 700 17px/1.2 var(--display); letter-spacing: -.03em; margin: 28px 0 1
   <header class="head">
     <div>
       <p class="name">Михаил Меланьин</p>
-      <h1 class="pos">Внедряю AI в крупный бизнес<a class="fn" href="#n1">1</a></h1>
-      <p class="lede"><strong>Нахожу в процессах компании, где AI экономит деньги и время, считаю эффект и довожу до работающего решения.</strong> 12+ лет продаю и внедряю технологии в банках, ритейле, промышленности и телекоме.<a class="fn" href="#n1">1</a></p>
+      <h1 class="pos">Руководитель проектов по внедрению AI<a class="fn" href="#n1">1</a></h1>
+      <p class="lede"><strong>Внедряю AI в крупные компании: нахожу, где он экономит деньги, запускаю проект и довожу до результата.</strong> 12+ лет продаю и внедряю технологии в банках, ритейле, промышленности и телекоме.<a class="fn" href="#n1">1</a></p>
       <div class="contacts">
         <a href="https://t.me/mike_melanin">Telegram @mike_melanin</a>
         <a href="tel:+79251164669">+7 925 116-46-69</a>
@@ -235,11 +236,11 @@ h2 { font: 700 17px/1.2 var(--display); letter-spacing: -.03em; margin: 28px 0 1
     <img class="photo" src="../img/headshot.jpg" alt="Михаил Меланьин" width="112" height="112">
   </header>
 
-  <div class="figs">
-    <div class="fig"><b>~600<small>млн ₽</small><a class="fn" href="#n2">2</a></b><span>закрытых сделок и привлечённых инвестиций</span></div>
-    <div class="fig"><b>~10x</b><span>выход для инвесторов Cube, сооснователь</span></div>
-    <div class="fig"><b>300+</b><span>платящих enterprise-клиентов в Cube</span></div>
-    <div class="fig"><b>5</b><span>пилотов роботов: Лента, НЛМК, ДИТ Москвы, СберСервис</span></div>
+  <h2>Ключевые результаты<a class="fn" href="#n2">2</a></h2>
+  <div class="wins">
+    <div class="win"><b>~10x</b><p>Создал стартап в Кремниевой долине и вышел из него с ~10x. Как сооснователь, по сути co-CEO, руководил всем до инвестиций: Slack-бот для аналитики, 10 000+ пользователей и 300+ платящих компаний.</p></div>
+    <div class="win"><b>30+</b><p>В Центре робототехники Сбера провёл аудит крупнейших компаний России и дочек Сбера, собрал программу роботизации: 30+ проектов, пилоты и пресейлы с Лентой, НЛМК, ДИТ Москвы и СберСервисом.</p></div>
+    <div class="win"><b>~600<small>млн ₽</small></b><p>Суммарно закрыл сделок и привлёк инвестиций на ~600 млн ₽ ($7M+): инвестиции в Cube и Nopilot, продажи enterprise-клиентам.</p></div>
   </div>
 
   <h2>Какие задачи закрываю<a class="fn" href="#n3">3</a></h2>
@@ -250,12 +251,13 @@ h2 { font: 700 17px/1.2 var(--display); letter-spacing: -.03em; margin: 28px 0 1
   </div>
 
   <h2>Опыт<a class="fn" href="#n4">4</a></h2>
+  <p class="track">Продукт и продажи B2B в США → роботы → AI-агенты → внедрение AI в крупный бизнес</p>
   <div class="tl"><div class="tl-inner">
     <div class="tl-eras">
-      <span style="--s:0;--e:5">B2B SaaS и fintech</span>
-      <span style="--s:5;--e:8.55">Роботы и Physical AI</span>
+      <span style="--s:0;--e:5">Продукт и продажи B2B в США</span>
+      <span style="--s:5;--e:8.55">Роботы</span>
       <span style="--s:8.55;--e:12">AI-агенты</span>
-      <span class="now" style="--s:12;--e:13">Enterprise AI</span>
+      <span class="now" style="--s:12;--e:13">Внедрение AI</span>
     </div>
     <div class="tl-track">
       <span class="tl-seg" style="--s:0;--e:3.83">Cube</span>
@@ -280,7 +282,7 @@ h2 { font: 700 17px/1.2 var(--display); letter-spacing: -.03em; margin: 28px 0 1
           <li>Провёл аудит бизнес-процессов в банках и крупных компаниях: нашёл узкие места, где AI даёт эффект в деньгах, посчитал окупаемость и план внедрения.<a class="fn" href="#n5">5</a></li>
           <li>Спроектировал корпоративные AI-платформы, которые работают внутри контура банка: данные не уходят наружу, качество ответов под контролем.<a class="fn" href="#n6">6</a></li>
           <li>Заложил в архитектуру требования банков к надёжности и безопасности: SLA, резервирование, ИБ, мониторинг.<a class="fn" href="#n6">6</a></li>
-          <li>Вышел на CIO, руководителей бизнеса и зампредов банков, запустил пилоты с измеримым эффектом.<a class="fn" href="#n5">5</a></li>
+          <li>Вышел на CIO, руководителей бизнеса и зампредов банков, подготовил пилоты с измеримым эффектом.<a class="fn" href="#n5">5</a></li>
         </ul>
       </div>
     </article>
@@ -293,7 +295,7 @@ h2 { font: 700 17px/1.2 var(--display); letter-spacing: -.03em; margin: 28px 0 1
         <ul>
           <li>Перевёл запросы бизнеса в понятные требования для инженеров: разобрал задачи с заказчиками, подготовил ТЗ с аналитиками, определил состав работ, довёл предложения до подписания.<a class="fn" href="#n7">7</a></li>
           <li>Подобрал архитектуру под задачи клиентов: модели, поиск по базе знаний компании, развёртывание на серверах заказчика.<a class="fn" href="#n7">7</a></li>
-          <li>Продал и спроектировал решения: AI-агенты поддержки, речевая аналитика звонков, поиск по документам, обезличивание персональных данных по ФЗ-152.<a class="fn" href="#n7">7</a></li>
+          <li>Спроектировал решения для клиентов: AI-агенты поддержки, речевая аналитика звонков, поиск по документам, обезличивание персональных данных по ФЗ-152.<a class="fn" href="#n7">7</a></li>
         </ul>
       </div>
     </article>
@@ -348,11 +350,12 @@ h2 { font: 700 17px/1.2 var(--display); letter-spacing: -.03em; margin: 28px 0 1
       <div class="job-years">2014 – 2017</div>
       <div class="job-co"><span class="logo" role="img" aria-label="Cube"><svg aria-hidden="true" focusable="false" class="wide" viewBox="0 0 98 28" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M 12.34  .47C 13.31 -.1  14.52 -.1  15.49  .47L 25.71  6.43C 26.11  6.67  26.35  7.1  26.35  7.56V 11.9C 26.35  12.13  26.23  12.35  26.03  12.46L 23.84  13.84L 25.71  14.87C 26.11  15.11  26.35  15.54  26.35  16V 20.44C 26.35  20.9  26.11  21.33  25.71  21.56L 15.48  27.53C 14.51  28.1  13.31  28.1  12.34  27.53L 2.12  21.56C 1.72  21.33  1.47  20.9  1.47  20.44V 7.56C 1.47  7.1  1.72  6.67  2.12  6.43L 12.34  .47ZM 14.7  1.77C 14.21  1.49  13.61  1.49  13.13  1.77L 3.18  7.58C 3.06  7.65  2.99  7.78  2.99  7.92V 20.01L 12.87  14.3C 13.52  13.93  14.31  13.93  14.95  14.3L 24.84  20.01V 16.35C 24.84  16.21  24.76  16.08  24.64  16.01L 14.7  10.2C 14.21  9.91  13.61  9.91  13.13  10.2L 6.38  14.12C 6.14  14.27  5.82  14.09  5.82  13.8V 10.39C 5.82  10.19  5.93  10  6.11  9.89L 12.86  5.86C 13.51  5.47  14.32  5.46  14.97  5.84L 24.84  11.58V 7.92C 24.84  7.78  24.76  7.65  24.64  7.58L 14.7  1.77Z" fill="currentColor"></path><path d="M 52.39  16.01C 52.39  16.96  52.73  17.72  53.26  18.23C 53.79  18.75  54.54  19.05  55.38  19.05L 55.68  19.04C 56.38  18.97  56.99  18.69  57.44  18.24C 57.96  17.72  58.29  16.96  58.29  16.01V 7.24H 61.78V 15.78C 61.78  17.77  61.08  19.41  59.93  20.55C 58.78  21.7  57.18  22.33  55.39  22.33C 53.57  22.33  51.95  21.7  50.79  20.56C 49.63  19.41  48.93  17.77  48.93  15.78V 7.24H 52.39V 16.01Z" fill="currentColor"></path><path fill-rule="evenodd" clip-rule="evenodd" d="M 68.5  8.64C 69.62  7.54  71.22  6.92  73.02  6.92C 77.22  6.92  80.22  10.27  80.22  14.64C 80.22  18.87  77.4  22.12  73.44  22.32L 73.05  22.33C 71.15  22.33  69.44  21.64  68.29  20.42V 22.01H 65.01V .43H 68.5V 8.64ZM 72.53  10.17C 71.51  10.17  70.49  10.52  69.74  11.24C 68.98  11.96  68.47  13.07  68.47  14.64C 68.47  16.22  68.99  17.32  69.75  18.03C 70.5  18.75  71.52  19.08  72.53  19.08L 72.74  19.07C 74.89  18.97  76.54  17.3  76.64  14.86L 76.65  14.61C 76.65  12.04  74.94  10.28  72.74  10.17L 72.53  10.17Z" fill="currentColor"></path><path fill-rule="evenodd" clip-rule="evenodd" d="M 90.06  6.92C 93.98  6.92  96.86  9.82  96.86  13.7C 96.86  14.52  96.71  15.29  96.62  15.68L 96.58  15.86H 86.08C 86.3  16.86  86.8  17.66  87.5  18.22C 88.26  18.83  89.26  19.17  90.43  19.17L 90.73  19.16C 92.17  19.09  93.34  18.49  94.43  17.53L 94.62  17.36L 94.76  17.57L 96.21  19.67L 96.32  19.83L 96.18  19.97C 94.73  21.34  92.91  22.21  90.78  22.32L 90.35  22.33C 85.97  22.33  82.69  19.2  82.49  15.04L 82.48  14.64C 82.48  10.32  85.79  6.92  90.06  6.92ZM 89.94  9.96C 88.15  9.96  86.67  11.14  86.15  13.01H 93.35C 93.28  12.06  92.89  11.32  92.32  10.81C 91.71  10.26  90.87  9.96  89.94  9.96Z" fill="currentColor"></path><path d="M 40.53  6.92C 43.3  6.92  45.46  8.27  46.71  10.35L 46.82  10.52L 46.66  10.64L 44.33  12.48L 44.2  12.29C 43.3  11.01  42.17  10.2  40.56  10.2C 38.09  10.2  36.33  12.12  36.33  14.61L 36.33  14.84C 36.44  17.27  38.17  19.05  40.56  19.05C 42.14  19.05  43.27  18.26  44.2  16.98L 44.34  16.79L 46.66  18.6L 46.82  18.72L 46.71  18.9C 45.43  20.97  43.27  22.33  40.53  22.33C 36.34  22.33  32.99  19.17  32.78  15.01L 32.77  14.61C 32.77  10.28  36.21  6.92  40.53  6.92Z" fill="currentColor"></path></svg></span></div>
       <div>
-        <p class="job-role">Co-founder, Chief Business Development Officer<span>Statsbot → Cube Dev, B2B SaaS для аналитики данных, США</span></p>
+        <p class="job-role">Сооснователь, по сути co-CEO<span>Chief Business Development Officer · Statsbot → Cube Dev, B2B SaaS для аналитики, США</span></p>
         <ul>
+          <li>Руководил всем бизнесом до инвестиций: продукт, продажи, маркетинг, команда.<a class="fn" href="#n11">11</a></li>
           <li>Построил продажи и маркетинг с нуля: сегменты, целевые клиенты, каналы, воронка, цены.<a class="fn" href="#n11">11</a></li>
           <li><strong>Вырастил продукт до 10 000+ пользователей и 300+ платящих enterprise-клиентов.</strong></li>
-          <li>Заключил партнёрства со Slack, Salesforce, Mixpanel и Google Analytics, привлёк инвестиции, <strong>выход для инвесторов ~10x</strong>. Сегодня Cube – в Gartner 2026.<a class="fn" href="#n11">11</a></li>
+          <li>Заключил партнёрства со Slack, Salesforce, Mixpanel и Google Analytics, привлёк инвестиции и <strong>вышел из компании с ~10x</strong>. Сегодня Cube – в Gartner 2026.<a class="fn" href="#n11">11</a></li>
         </ul>
         <div class="groups">
           <div class="group"><span class="group-label">Партнёрства</span><span class="logo"><svg aria-hidden="true" focusable="false" class="mark" fill="currentColor" role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zM6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zM8.834 6.313a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312zM18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zM17.688 8.834a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312zM15.165 18.956a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zM15.165 17.688a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z"/></svg><span class="wm">Slack</span></span><span class="logo"><svg aria-hidden="true" focusable="false" class="mark" fill="currentColor" role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M10.006 5.415a4.195 4.195 0 013.045-1.306c1.56 0 2.954.9 3.69 2.205.63-.3 1.35-.45 2.1-.45 2.85 0 5.159 2.34 5.159 5.22s-2.31 5.22-5.176 5.22c-.345 0-.69-.044-1.02-.104a3.75 3.75 0 01-3.3 1.95c-.6 0-1.155-.15-1.65-.375A4.314 4.314 0 018.88 20.4a4.302 4.302 0 01-4.05-2.82c-.27.062-.54.076-.825.076-2.204 0-4.005-1.8-4.005-4.05 0-1.5.811-2.805 2.01-3.51-.255-.57-.39-1.2-.39-1.846 0-2.58 2.1-4.65 4.65-4.65 1.53 0 2.85.705 3.72 1.8"/></svg><span class="wm">Salesforce</span></span><span class="logo"><svg aria-hidden="true" focusable="false" class="mark" fill="currentColor" role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M 6.97  10h 3.05c-.76-.48-1.05-1.15-1.43-2.38L 7.44  3.37C 6.92  1.46  6.49 .55  4.39 .55H 0v 1.15h .62c 1.29 0  1.43 .48  1.81  1.91L 3.44  7.33c .52  1.81  1.34  2.67  3.53  2.67h 0Zm 7.06 0h 3.05c 2.19 0  2.96-.86  3.48-2.67l 1-3.72c .38-1.43 .57-1.91  1.81-1.91H24V .55h-4.34c-2.15 0-2.58 .86-3.05  2.81l-1.15  4.25c-.38  1.29-.67  1.91-1.44  2.38Zm-4.01  4.01h 4.01V 10H 10.02v 4.01ZM0  23.45h 4.39c 2.1 0  2.53-.91  3.05-2.81l 1.15-4.25c .38-1.24 .67-1.91  1.43-2.38H 6.97c-2.19 0-3.01 .86-3.53  2.67l-1  3.72c-.38  1.43-.52  1.91-1.81  1.91H0v 1.15Zm 19.65 0h 4.34v-1.15h-.62c-1.24 0-1.43-.48-1.81-1.91l-1-3.72c-.52-1.81-1.29-2.67-3.48-2.67h-3.05c .76 .48  1.04  1.1  1.42  2.38l 1.15  4.25c .48  1.96 .91  2.81  3.05  2.81Z"/></svg><span class="wm">Mixpanel</span></span><span class="logo"><svg aria-hidden="true" focusable="false" class="mark" fill="currentColor" role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M22.84 2.9982v17.9987c.0086 1.6473-1.3197 2.9897-2.967 2.9984a2.9808 2.9808 0 01-.3677-.0208c-1.528-.226-2.6477-1.5558-2.6105-3.1V3.1204c-.0369-1.5458 1.0856-2.8762 2.6157-3.1 1.6361-.1915 3.1178.9796 3.3093 2.6158.014.1201.0208.241.0202.3619zM4.1326 18.0548c-1.6417 0-2.9726 1.331-2.9726 2.9726C1.16 22.6691 2.4909 24 4.1326 24s2.9726-1.3309 2.9726-2.9726-1.331-2.9726-2.9726-2.9726zm7.8728-9.0098c-.0171 0-.0342 0-.0513.0003-1.6495.0904-2.9293 1.474-2.891 3.1256v7.9846c0 2.167.9535 3.4825 2.3505 3.763 1.6118.3266 3.1832-.7152 3.5098-2.327.04-.1974.06-.3983.0593-.5998v-8.9585c.003-1.6474-1.33-2.9852-2.9773-2.9882z"/></svg><span class="wm">Google Analytics</span></span></div>
@@ -434,19 +437,19 @@ h2 { font: 700 17px/1.2 var(--display); letter-spacing: -.03em; margin: 28px 0 1
 
   <section class="notes" id="notes">
     <h2>Что поменял</h2>
-    <p class="notes-lede">По разбору с Вадимом: кто я – в первой строке, всё в совершённом виде (сделал, провёл, подал), проще язык, меньше сокращений, без слова "инициативы", вёрстка как в разделе Опыт на сайте. Пункты 5, 7 и 9 проверь по фактам – там я переписал процесс в результат.</p>
+    <p class="notes-lede">По разбору с Вадимом: кто я – в первой строке, всё в совершённом виде (сделал, провёл, подал), проще язык, меньше сокращений, без слова "инициативы", вёрстка как в разделе Опыт на сайте. Пункт 2 проверь по фактам.</p>
     <ol>
-      <li id="n1"><span class="fn">1</span><span>Новое позиционирование в лоб: внедряю AI в крупный бизнес.<span class="was">Было: Enterprise AI Transformation Lead · 12+ лет на стыке бизнеса, продукта и технологий в enterprise tech, AI и robotics.</span></span></li>
-      <li id="n2"><span class="fn">2</span><span>Главная цифра – суммарно ~600 млн ₽ ($7M × 86) сделок и инвестиций. Цифры вынесены наверх, как карточки на сайте.<span class="was">Было: проекты 5–20 млн ₽ в Manaraga.</span></span></li>
+      <li id="n1"><span class="fn">1</span><span>Позиционирование в лоб, как советовал Вадим: Руководитель проектов по внедрению AI.<span class="was">Было: Enterprise AI Transformation Lead · 12+ лет на стыке бизнеса, продукта и технологий в enterprise tech, AI и robotics.</span></span></li>
+      <li id="n2"><span class="fn">2</span><span>Три ключевых результата историями, как у Вадима: выход из стартапа с ~10x, программа роботизации в Сбере, ~600 млн ₽ ($7M × 86) сделок и инвестиций. Проверь разбивку 600 млн: инвестиции в Cube и Nopilot плюс продажи.<span class="was">Было: Cube – 10 000+ пользователей, ~10x exit; Sber – pipeline из 30+ инициатив; Manaraga – проекты 5–20 млн ₽.</span></span></li>
       <li id="n3"><span class="fn">3</span><span>Новый блок вместо абзаца-саммари. Сюда же мысль Вадима: раскопать у C-level, что нужно, и сделать из этого задание для инженеров.<span class="was">Было: Полный цикл AI-инициатив: поиск use cases с измеримым ROI и отражением в P&amp;L… вывод в production с FDE-командой.</span></span></li>
-      <li id="n4"><span class="fn">4</span><span>Вёрстка как в разделе Опыт на сайте: полоска с годами, логотипы компаний, клиентов, партнёров и инвесторов.<span class="was">Было: текстовый список без логотипов.</span></span></li>
-      <li id="n5"><span class="fn">5</span><span>red_mad_robot: AI-трансформация расшифрована как аудит процессов и поиск узких мест, всё в прошедшем времени. Проверь, что "провёл" и "запустил пилоты" – правда на сегодня.<span class="was">Было: Программы AI-трансформации…: диагностика процессов, приоритизация use cases, бизнес-кейсы и ROI, дорожная карта до production.</span></span></li>
+      <li id="n4"><span class="fn">4</span><span>Вёрстка как в разделе Опыт на сайте: полоска с годами, логотипы. Над полоской – логика карьеры, этапы на полоске подписаны так же.<span class="was">Было: текстовый список без логотипов.</span></span></li>
+      <li id="n5"><span class="fn">5</span><span>red_mad_robot: AI-трансформация расшифрована как аудит процессов и поиск узких мест, всё в прошедшем времени. Пилоты – "подготовил", а не "запустил".<span class="was">Было: Программы AI-трансформации…: диагностика процессов, приоритизация use cases, бизнес-кейсы и ROI, дорожная карта до production.</span></span></li>
       <li id="n6"><span class="fn">6</span><span>red_mad_robot: вместо списка компонентов – что это даёт банку.<span class="was">Было: LLM inference, AI Gateway/Router, RAG/Knowledge Layer, Agent Harness &amp; Runtime, orchestration, MCP/tools, guardrails и observability; RTO/RPO, DR.</span></span></li>
-      <li id="n7"><span class="fn">7</span><span>Manaraga: убраны discovery, PRD, scope, solution concept, agent frameworks. Портфель продуктов стал "продал и спроектировал" – проверь.<span class="was">Было: Solution design для проектов 5–20 млн ₽: discovery, PRD с бизнес-аналитиками, scope, solution concept…; Продуктовый портфель: …</span></span></li>
+      <li id="n7"><span class="fn">7</span><span>Manaraga: убраны discovery, PRD, scope, solution concept, agent frameworks. Портфель продуктов стал "спроектировал решения" – без продаж.<span class="was">Было: Solution design для проектов 5–20 млн ₽: discovery, PRD с бизнес-аналитиками, scope, solution concept…; Продуктовый портфель: …</span></span></li>
       <li id="n8"><span class="fn">8</span><span>Strawberry: прошедшее время, расшифрованы ICP, ASR, tool use, agent runtime.<span class="was">Было: Прототип AI-агента: сборка и пользовательские тесты; Продуктовая стратегия и GTM: ICP, value proposition…</span></span></li>
       <li id="n9"><span class="fn">9</span><span>Сбер: убрано слово "инициативы", добавлены логотипы клиентов. Проверь формулировку "30+ сценариев".<span class="was">Было: Pipeline из 30+ инициатив, 5 доведены до пилота или пресейла.</span></span></li>
       <li id="n10"><span class="fn">10</span><span>Nopilot: прошедшее время, убраны VLA/VLM, ICP, narrative.<span class="was">Было: Autonomous last-mile delivery…; end-to-end подход с VLA / VLM-моделями.</span></span></li>
-      <li id="n11"><span class="fn">11</span><span>Cube: GTM расшифрован как продажи и маркетинг, добавлены логотипы партнёров, инвесторов и клиентов.<span class="was">Было: GTM с нуля: сегментация, ICP, value proposition, каналы, воронка, pricing.</span></span></li>
+      <li id="n11"><span class="fn">11</span><span>Cube: роль – сооснователь, по сути co-CEO, руководил всем до инвестиций; твой выход с ~10x. GTM расшифрован как продажи и маркетинг, добавлены логотипы.<span class="was">Было: GTM с нуля: сегментация, ICP, value proposition, каналы, воронка, pricing.</span></span></li>
       <li id="n12"><span class="fn">12</span><span>Ранее: из описания обязанностей – в результат.<span class="was">Было: fintech-платформа для токенизации активов; ключевые сценарии мобильного банка; дизайн-функция с нуля.</span></span></li>
       <li id="n13"><span class="fn">13</span><span>Навыки: два длинных списка через точку заменены тегами как на сайте, часть терминов переведена на русский. Убраны дубли и Agent Harness, RTO/RPO, DR.<span class="was">Было: блоки Технический контур и Навыки одной строкой.</span></span></li>
     </ol>
