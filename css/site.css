@@ -906,3 +906,10 @@ body { --cut: var(--paper); }
 .venom--gl .venom-btn:focus-visible { box-shadow: 0 0 0 4px rgba(0,0,0,.25); }
 html.venom-nocursor, html.venom-nocursor * { cursor: none !important; }
 @media (prefers-reduced-motion: reduce) { .venom-btn:active { transform: none; } }
+/* маленькая липкая кнопка в шапке: щупальца вылезают из шапки вниз на страницу */
+.venom-nav .venom-btn { height: 46px; padding: 0 20px; font-size: 15px; gap: .5em; }
+.venom-nav .venom-btn svg { width: 18px; height: 18px; }
+@media (max-width: 560px) {
+  .venom-nav .venom-btn { width: 44px; height: 44px; padding: 0; }
+  .venom-nav .venom-btn span { display: none; }
+}
