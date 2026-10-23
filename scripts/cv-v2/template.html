@@ -58,7 +58,8 @@ img { display: block; max-width: 100%; }
 .win + .win { padding-left: 16px; border-left: 1px solid var(--line); }
 .win b { display: block; font: 800 28px/1 var(--display); letter-spacing: -.05em; white-space: nowrap; }
 .win b small { font-size: .5em; letter-spacing: -.03em; margin-left: .15em; }
-.win p { margin-top: 8px; font-size: 13.5px; line-height: 1.4; color: var(--muted); }
+.win i { display: block; margin-top: 6px; font-style: normal; font-weight: 600; font-size: 14px; line-height: 1.3; }
+.win p { margin-top: 4px; font-size: 13.5px; line-height: 1.4; color: var(--muted); }
 
 /* ---------- что решаю ---------- */
 h2 { font: 700 17px/1.2 var(--display); letter-spacing: -.03em; margin: 28px 0 14px; }
@@ -163,7 +164,8 @@ h2 { font: 700 17px/1.2 var(--display); letter-spacing: -.03em; margin: 28px 0 1
   .photo { width: 70pt; height: 70pt; border-radius: 9pt; }
   .win { padding-top: 9pt; padding-bottom: 9pt; }
   .win b { font-size: 17pt; }
-  .win p { font-size: 8.3pt; margin-top: 5pt; }
+  .win i { font-size: 8.8pt; margin-top: 4pt; }
+  .win p { font-size: 8.3pt; margin-top: 2pt; }
   h2 { font-size: 10.5pt; margin: 14pt 0 8pt; }
   .solve div { font-size: 8.4pt; padding: 8pt 10pt; border-radius: 8pt; }
   .solve b { font-size: 9pt; }
@@ -238,9 +240,9 @@ h2 { font: 700 17px/1.2 var(--display); letter-spacing: -.03em; margin: 28px 0 1
 
   <h2>Ключевые результаты<a class="fn" href="#n2">2</a></h2>
   <div class="wins">
-    <div class="win"><b>~10x</b><p>Создал стартап в Кремниевой долине и вышел из него с ~10x. Как сооснователь, по сути co-CEO, руководил всем до инвестиций: Slack-бот для аналитики, 10 000+ пользователей и 300+ платящих компаний.</p></div>
-    <div class="win"><b>30+</b><p>В Центре робототехники Сбера провёл аудит крупнейших компаний России и дочек Сбера, собрал программу роботизации: 30+ проектов, пилоты и пресейлы с Лентой, НЛМК, ДИТ Москвы и СберСервисом.</p></div>
-    <div class="win"><b>~600<small>млн ₽</small></b><p>Суммарно закрыл сделок и привлёк инвестиций на ~600 млн ₽ ($7M+): инвестиции в Cube и Nopilot, продажи enterprise-клиентам.</p></div>
+    <div class="win"><b>~10x</b><i>мой выход из стартапа</i><p>Создал стартап в Кремниевой долине и вышел из него с ~10x. Как сооснователь руководил всем до инвестиций: Slack-бот для аналитики, 10 000+ пользователей и 300+ платящих компаний.</p></div>
+    <div class="win"><b>30+</b><i>проектов роботизации в Сбере</i><p>В Центре робототехники Сбера провёл аудит крупнейших компаний России и дочек Сбера, собрал программу роботизации: 30+ проектов, пилоты и пресейлы с Лентой, НЛМК, ДИТ Москвы и СберСервисом.</p></div>
+    <div class="win"><b>~600<small>млн ₽</small></b><i>сделок и инвестиций</i><p>Суммарно закрыл сделок и привлёк инвестиций на ~600 млн ₽ ($7M+): инвестиции в Cube и Nopilot, продажи enterprise-клиентам.</p></div>
   </div>
 
   <h2>Какие задачи закрываю<a class="fn" href="#n3">3</a></h2>
@@ -275,12 +277,13 @@ h2 { font: 700 17px/1.2 var(--display); letter-spacing: -.03em; margin: 28px 0 1
       <div class="job-years">июнь 2026 – сейчас</div>
       <div class="job-co">{{logo:red_mad_robot}}</div>
       <div>
-        <p class="job-role">Руководитель AI-трансформации<span>Enterprise AI Transformation Lead · банки и крупные компании</span></p>
+        <p class="job-role">Руководитель AI-трансформации<span>AI для банков и крупных компаний</span></p>
         <ul>
-          <li>Провёл аудит бизнес-процессов в банках и крупных компаниях: нашёл узкие места, где AI даёт эффект в деньгах, посчитал окупаемость и план внедрения.<a class="fn" href="#n5">5</a></li>
-          <li>Спроектировал корпоративные AI-платформы, которые работают внутри контура банка: данные не уходят наружу, качество ответов под контролем.<a class="fn" href="#n6">6</a></li>
-          <li>Заложил в архитектуру требования банков к надёжности и безопасности: SLA, резервирование, ИБ, мониторинг.<a class="fn" href="#n6">6</a></li>
-          <li>Вышел на CIO, руководителей бизнеса и зампредов банков, подготовил пилоты с измеримым эффектом.<a class="fn" href="#n5">5</a></li>
+          <li><strong>Подготовил предложения со сметами для банков и крупных компаний на ~100 млн ₽: Банк Ермак, Лемана Про, Астра, Пихта-банк, ГК Родина.</strong><a class="fn" href="#n5">5</a></li>
+          <li>Банк Ермак: провёл переговоры с зампредом, посчитал эффект – ~525 млн ₽ легальных платежей в месяц банк терял на одном клиенте, собрал предложение на 16 млн ₽ по AI-агенту контроля платежей.<a class="fn" href="#n5">5</a></li>
+          <li>Банк Зенит: предложил и спланировал пилот на 5 дней – защищённый шлюз к LLM внутри банка с фильтрами безопасности, упаковал кейс AI-трансформации банка.<a class="fn" href="#n5">5</a></li>
+          <li>Астра: прошёл путь от первой встречи до КП со сметой за 5 дней; с Группой Арнест довёл до финальной версии рамочный договор.<a class="fn" href="#n5">5</a></li>
+          <li>Спроектировал для банков AI-платформы внутри их контура: данные не уходят наружу, есть защита и мониторинг.<a class="fn" href="#n6">6</a></li>
         </ul>
       </div>
     </article>
@@ -289,11 +292,12 @@ h2 { font: 700 17px/1.2 var(--display); letter-spacing: -.03em; margin: 28px 0 1
       <div class="job-years">янв – июнь 2026</div>
       <div class="job-co">{{logo:Manaraga}}</div>
       <div>
-        <p class="job-role">Solution / Presales Lead<span>Разработчик AI-решений под заказ для крупного бизнеса</span></p>
+        <p class="job-role">Руководитель пресейла<span>Разработчик AI-решений под заказ для крупного бизнеса</span></p>
         <ul>
-          <li>Перевёл запросы бизнеса в понятные требования для инженеров: разобрал задачи с заказчиками, подготовил ТЗ с аналитиками, определил состав работ, довёл предложения до подписания.<a class="fn" href="#n7">7</a></li>
-          <li>Подобрал архитектуру под задачи клиентов: модели, поиск по базе знаний компании, развёртывание на серверах заказчика.<a class="fn" href="#n7">7</a></li>
-          <li>Спроектировал решения для клиентов: AI-агенты поддержки, речевая аналитика звонков, поиск по документам, обезличивание персональных данных по ФЗ-152.<a class="fn" href="#n7">7</a></li>
+          <li><strong>Провёл 6 пресейлов одновременно в фарме, FMCG, ритейле и страховании.</strong><a class="fn" href="#n7">7</a></li>
+          <li>Привёл из своего нетворка 2 фарма-компании из топ-20: AI-ассистент для обучения персонала по GMP и сбор отклонений контроля качества для аудитов.<a class="fn" href="#n7">7</a></li>
+          <li>Запустил с нуля холодные продажи в страховые компании.<a class="fn" href="#n7">7</a></li>
+          <li>Подготовил для клиентов решения и оценки: ТЗ с аналитиками, состав работ, архитектура, развёртывание на серверах заказчика.<a class="fn" href="#n7">7</a></li>
         </ul>
       </div>
     </article>
@@ -302,7 +306,7 @@ h2 { font: 700 17px/1.2 var(--display); letter-spacing: -.03em; margin: 28px 0 1
       <div class="job-years">2022 – 2025</div>
       <div class="job-co">{{logo:Strawberry.ai}}</div>
       <div>
-        <p class="job-role">Head of BD &amp; Product<span>Персональный AI-агент в собственном устройстве</span></p>
+        <p class="job-role">Руководитель развития бизнеса и продукта<span>Персональный AI-агент в собственном устройстве</span></p>
         <ul>
           <li>Собрал прототип AI-агента с памятью и доступом к приложениям, провёл тесты с пользователями.<a class="fn" href="#n8">8</a></li>
           <li>Определил продуктовую стратегию и выход на рынок: целевая аудитория, ценность для клиента, roadmap, метрики MVP.<a class="fn" href="#n8">8</a></li>
@@ -315,11 +319,11 @@ h2 { font: 700 17px/1.2 var(--display); letter-spacing: -.03em; margin: 28px 0 1
       <div class="job-years">2021 – 2022</div>
       <div class="job-co">{{logo:Сбер}}</div>
       <div>
-        <p class="job-role">Senior Product Manager<span>Sber Robotics Lab: роботы для доставки, ритейла и промышленности</span></p>
+        <p class="job-role">Старший продакт-менеджер<span>Sber Robotics Lab: роботы для доставки, ритейла и промышленности</span></p>
         <ul>
+          <li><strong>Отобрал 30+ сценариев применения роботов, 5 довёл до пилота или пресейла.</strong><a class="fn" href="#n9">9</a></li>
           <li>Упаковал робота-доставщика в продукт: сценарии работы, метрики успеха, полевые тесты.<a class="fn" href="#n9">9</a></li>
           <li>Провёл пресейлы для Ленты, ДИТ Москвы, НЛМК и СберСервис: дизайн пилота, бизнес-кейс, экономика, переговоры.<a class="fn" href="#n9">9</a></li>
-          <li><strong>Отобрал 30+ сценариев применения роботов, 5 довёл до пилота или пресейла.</strong><a class="fn" href="#n9">9</a></li>
         </ul>
         <div class="groups">
           <div class="group"><span class="group-label">Пилоты и пресейлы</span>{{logo:Лента}}{{logo:ДИТ Москвы}}{{logo:НЛМК}}{{logo:СберСервис}}</div>
@@ -331,11 +335,11 @@ h2 { font: 700 17px/1.2 var(--display); letter-spacing: -.03em; margin: 28px 0 1
       <div class="job-years">2019 – 2021</div>
       <div class="job-co">{{logo:Nopilot.ai}}</div>
       <div>
-        <p class="job-role">Co-founder, Head of BD<span>Автономная доставка, Канада и Россия</span></p>
+        <p class="job-role">Сооснователь, руководитель развития бизнеса<span>Автономная доставка, Канада и Россия</span></p>
         <ul>
+          <li><strong>Основал компанию с партнёрами, привлёк seed-инвестиции и собрал команду.</strong><a class="fn" href="#n10">10</a></li>
           <li>Запустил 2 пилота с реальными операторами в Москве и Монреале, собрал данные для обучения моделей.<a class="fn" href="#n10">10</a></li>
           <li>Построил стратегию выхода на рынок: целевые клиенты, цены, позиционирование.<a class="fn" href="#n10">10</a></li>
-          <li>Прошёл акселератор Techstars Montreal AI, привлёк seed-инвестиции, собрал команду.<a class="fn" href="#n10">10</a></li>
         </ul>
       </div>
     </article>
@@ -344,11 +348,11 @@ h2 { font: 700 17px/1.2 var(--display); letter-spacing: -.03em; margin: 28px 0 1
       <div class="job-years">2014 – 2017</div>
       <div class="job-co">{{logo:Cube}}</div>
       <div>
-        <p class="job-role">Сооснователь, по сути co-CEO<span>Chief Business Development Officer · Statsbot → Cube Dev, B2B SaaS для аналитики, США</span></p>
+        <p class="job-role">Сооснователь<span>Statsbot → Cube Dev, B2B SaaS для аналитики, США</span></p>
         <ul>
+          <li><strong>Вырастил продукт до 10 000+ пользователей и 300+ платящих enterprise-клиентов.</strong></li>
           <li>Руководил всем бизнесом до инвестиций: продукт, продажи, маркетинг, команда.<a class="fn" href="#n11">11</a></li>
           <li>Построил продажи и маркетинг с нуля: сегменты, целевые клиенты, каналы, воронка, цены.<a class="fn" href="#n11">11</a></li>
-          <li><strong>Вырастил продукт до 10 000+ пользователей и 300+ платящих enterprise-клиентов.</strong></li>
           <li>Заключил партнёрства со Slack, Salesforce, Mixpanel и Google Analytics, привлёк инвестиции и <strong>вышел из компании с ~10x</strong>. Сегодня Cube – в Gartner 2026.<a class="fn" href="#n11">11</a></li>
         </ul>
         <div class="groups">
@@ -365,9 +369,9 @@ h2 { font: 700 17px/1.2 var(--display); letter-spacing: -.03em; margin: 28px 0 1
       <div>
         <p class="job-role">Ранее: BANKEX, МДМ Банк, Нетология<span>Fintech, мобильный банк, продуктовый дизайн</span></p>
         <ul>
-          <li><strong>BANKEX</strong>, Project Director, 2017–2018: возглавил команду 25+ человек в Лос-Анджелесе и Москве, запустил платформу токенизации активов.<a class="fn" href="#n12">12</a></li>
-          <li><strong>МДМ Банк / Бинбанк</strong>, UX Expert, 2015–2016: спроектировал ключевые сценарии мобильного банка для частных клиентов и бизнеса.<a class="fn" href="#n12">12</a></li>
-          <li><strong>Нетология-групп</strong>, Head of Product Design, 2014–2015: создал дизайн-функцию с нуля, сделал редизайн ключевых продуктов.<a class="fn" href="#n12">12</a></li>
+          <li><strong>BANKEX</strong>, руководитель проекта, 2017–2018: возглавил команду 25+ человек в Лос-Анджелесе и Москве, запустил платформу токенизации активов.<a class="fn" href="#n12">12</a></li>
+          <li><strong>МДМ Банк / Бинбанк</strong>, UX-эксперт, 2015–2016: спроектировал ключевые сценарии мобильного банка для частных клиентов и бизнеса.<a class="fn" href="#n12">12</a></li>
+          <li><strong>Нетология-групп</strong>, руководитель продуктового дизайна, 2014–2015: создал дизайн-функцию с нуля, сделал редизайн ключевых продуктов.<a class="fn" href="#n12">12</a></li>
         </ul>
       </div>
     </article>
@@ -412,19 +416,19 @@ h2 { font: 700 17px/1.2 var(--display); letter-spacing: -.03em; margin: 28px 0 1
 
   <section class="notes" id="notes">
     <h2>Что поменял</h2>
-    <p class="notes-lede">По разбору с Вадимом: кто я – в первой строке, всё в совершённом виде (сделал, провёл, подал), проще язык, меньше сокращений, без слова "инициативы", вёрстка как в разделе Опыт на сайте. Пункт 2 проверь по фактам.</p>
+    <p class="notes-lede">По разбору с Вадимом: кто я – в первой строке, всё в совершённом виде (сделал, провёл, подал), проще язык, меньше сокращений, без слова "инициативы", вёрстка как в разделе Опыт на сайте. Пункты 2, 5 и 7 проверь по фактам.</p>
     <ol>
       <li id="n1"><span class="fn">1</span><span>Позиционирование в лоб, как советовал Вадим: Руководитель проектов по внедрению AI.<span class="was">Было: Enterprise AI Transformation Lead · 12+ лет на стыке бизнеса, продукта и технологий в enterprise tech, AI и robotics.</span></span></li>
       <li id="n2"><span class="fn">2</span><span>Три ключевых результата историями, как у Вадима: выход из стартапа с ~10x, программа роботизации в Сбере, ~600 млн ₽ ($7M × 86) сделок и инвестиций. Проверь разбивку 600 млн: инвестиции в Cube и Nopilot плюс продажи.<span class="was">Было: Cube – 10 000+ пользователей, ~10x exit; Sber – pipeline из 30+ инициатив; Manaraga – проекты 5–20 млн ₽.</span></span></li>
       <li id="n3"><span class="fn">3</span><span>Новый блок вместо абзаца-саммари. Сюда же мысль Вадима: раскопать у C-level, что нужно, и сделать из этого задание для инженеров.<span class="was">Было: Полный цикл AI-инициатив: поиск use cases с измеримым ROI и отражением в P&amp;L… вывод в production с FDE-командой.</span></span></li>
-      <li id="n4"><span class="fn">4</span><span>Вёрстка как в разделе Опыт на сайте: полоска с годами, логотипы. Над полоской – логика карьеры, этапы на полоске подписаны так же.<span class="was">Было: текстовый список без логотипов.</span></span></li>
-      <li id="n5"><span class="fn">5</span><span>red_mad_robot: AI-трансформация расшифрована как аудит процессов и поиск узких мест, всё в прошедшем времени. Пилоты – "подготовил", а не "запустил".<span class="was">Было: Программы AI-трансформации…: диагностика процессов, приоритизация use cases, бизнес-кейсы и ROI, дорожная карта до production.</span></span></li>
+      <li id="n4"><span class="fn">4</span><span>Вёрстка как в разделе Опыт на сайте: полоска с годами, логотипы. Должности по-русски, жирные пункты первыми. Над полоской – логика карьеры, этапы на полоске подписаны так же.<span class="was">Было: текстовый список без логотипов.</span></span></li>
+      <li id="n5"><span class="fn">5</span><span>red_mad_robot: переписано под продажи и пресейл по материалам из твоей папки red_mad_robot. ~100 млн ₽ – сумма смет (Ермак 16, Лемана 13,6, Астра до 27, Пихта 25, Родина ~10), подписанных договоров в файлах нет. По Зениту – пилот и упаковка кейса, саму трансформацию банка делала команда.<span class="was">Было: Программы AI-трансформации…: диагностика процессов, приоритизация use cases…; Банковский трек: выход на CIO, руководителей бизнеса и зампредов.</span></span></li>
       <li id="n6"><span class="fn">6</span><span>red_mad_robot: вместо списка компонентов – что это даёт банку.<span class="was">Было: LLM inference, AI Gateway/Router, RAG/Knowledge Layer, Agent Harness &amp; Runtime, orchestration, MCP/tools, guardrails и observability; RTO/RPO, DR.</span></span></li>
-      <li id="n7"><span class="fn">7</span><span>Manaraga: убраны discovery, PRD, scope, solution concept, agent frameworks. Портфель продуктов стал "спроектировал решения" – без продаж.<span class="was">Было: Solution design для проектов 5–20 млн ₽: discovery, PRD с бизнес-аналитиками, scope, solution concept…; Продуктовый портфель: …</span></span></li>
+      <li id="n7"><span class="fn">7</span><span>Manaraga: только продажи и пресейл. Цифры (6 пресейлов, 2 фарма-лида, холодные продажи в страхование) взяты из твоих заметок к собеседованиям – первичных файлов нет, проверь.<span class="was">Было: Solution design для проектов 5–20 млн ₽: discovery, PRD с бизнес-аналитиками, scope…</span></span></li>
       <li id="n8"><span class="fn">8</span><span>Strawberry: прошедшее время, расшифрованы ICP, ASR, tool use, agent runtime.<span class="was">Было: Прототип AI-агента: сборка и пользовательские тесты; Продуктовая стратегия и GTM: ICP, value proposition…</span></span></li>
       <li id="n9"><span class="fn">9</span><span>Сбер: убрано слово "инициативы", добавлены логотипы клиентов. Проверь формулировку "30+ сценариев".<span class="was">Было: Pipeline из 30+ инициатив, 5 доведены до пилота или пресейла.</span></span></li>
-      <li id="n10"><span class="fn">10</span><span>Nopilot: прошедшее время, убраны VLA/VLM, ICP, narrative.<span class="was">Было: Autonomous last-mile delivery…; end-to-end подход с VLA / VLM-моделями.</span></span></li>
-      <li id="n11"><span class="fn">11</span><span>Cube: роль – сооснователь, по сути co-CEO, руководил всем до инвестиций; твой выход с ~10x. GTM расшифрован как продажи и маркетинг, добавлены логотипы.<span class="was">Было: GTM с нуля: сегментация, ICP, value proposition, каналы, воронка, pricing.</span></span></li>
+      <li id="n10"><span class="fn">10</span><span>Nopilot: первым пунктом – основал компанию и привлёк инвестиции, вместо "прошёл акселератор"; убраны VLA/VLM, ICP, narrative.<span class="was">Было: Autonomous last-mile delivery…; end-to-end подход с VLA / VLM-моделями.</span></span></li>
+      <li id="n11"><span class="fn">11</span><span>Cube: роль – сооснователь, руководил всем до инвестиций; твой выход с ~10x. GTM расшифрован как продажи и маркетинг, добавлены логотипы.<span class="was">Было: GTM с нуля: сегментация, ICP, value proposition, каналы, воронка, pricing.</span></span></li>
       <li id="n12"><span class="fn">12</span><span>Ранее: из описания обязанностей – в результат.<span class="was">Было: fintech-платформа для токенизации активов; ключевые сценарии мобильного банка; дизайн-функция с нуля.</span></span></li>
       <li id="n13"><span class="fn">13</span><span>Навыки: два длинных списка через точку заменены тегами как на сайте, часть терминов переведена на русский. Убраны дубли и Agent Harness, RTO/RPO, DR.<span class="was">Было: блоки Технический контур и Навыки одной строкой.</span></span></li>
     </ol>
