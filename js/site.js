@@ -132,7 +132,7 @@
   const slot = document.querySelector('.slot');
   if (slot) {
     const word = slot.querySelector('.slot-w');
-    const WORDS = ['бизнес', 'банки', 'ритейл', 'фарму', 'страхование', 'телеком', 'FMCG'];
+    const WORDS = ['банки', 'ритейл', 'фарму', 'страхование', 'телеком', 'FMCG', 'бизнес'];
     let idx = 0, heroVis = true, last = 0, busy = false;
     const roll = async (text) => {
       word.style.width = word.getBoundingClientRect().width + 'px';
