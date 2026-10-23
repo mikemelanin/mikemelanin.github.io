@@ -279,21 +279,26 @@ void main(){
     const loopDiff = (a, b) => { const P = pill.P; let d = (b - a) % P; if (d > P / 2) d -= P; if (d < -P / 2) d += P; return d; };
 
     // ---------- указатель ----------
-    const ptr = { cx: 0, cy: 0, has: false, inside: false, last: 0 };
+    // мышь хранится в координатах экрана (курсор стоит на месте, пока крутишь колесо), палец – в
+    // координатах страницы: при прокрутке он едет вместе с ней, даже если телефон редко шлёт touchmove
+    const ptr = { x: 0, y: 0, page: false, has: false, inside: false, last: 0 };
+    const ptrX = () => ptr.page ? ptr.x - scrollX : ptr.x, ptrY = () => ptr.page ? ptr.y - scrollY : ptr.y;
     let touched = false;
     // будим цикл, только если курсор в сцене или только что из неё вышел
     function wake() {
       if (running || dead || reduced || !visible || !ptr.has) return;
-      const r = btn.getBoundingClientRect();
-      const dx = Math.max(r.left - ptr.cx, 0, ptr.cx - r.right), dy = Math.max(r.top - ptr.cy, 0, ptr.cy - r.bottom);
+      const r = btn.getBoundingClientRect(), cx = ptrX(), cy = ptrY();
+      const dx = Math.max(r.left - cx, 0, cx - r.right), dy = Math.max(r.top - cy, 0, cy - r.bottom);
       if ((dx <= PADX && dy <= PADY) || ptr.inside) start();
     }
     const onMove = e => {
       if (e.pointerType === 'touch') return;
-      ptr.cx = e.clientX; ptr.cy = e.clientY; ptr.has = true;
+      ptr.x = e.clientX; ptr.y = e.clientY; ptr.page = false; ptr.has = true;
       wake();
     };
-    const onLeave = e => { if (!e.relatedTarget) { ptr.has = false; if (ptr.inside && !running) start(); } };
+    // pointerout без relatedTarget – курсор ушёл из окна. У пальца он приходит и в начале прокрутки
+    // (pointercancel), поэтому касания тут не считаем: их конец ловит touchend
+    const onLeave = e => { if (e.pointerType !== 'touch' && !e.relatedTarget) { ptr.has = false; if (ptr.inside && !running) start(); } };
     const onBlur = () => { ptr.has = false; if (ptr.inside && !running) start(); };
     const onScroll = () => wake();
     // на телефоне курсора нет: щупальца тянутся к пальцу, пока он касается экрана, даже во время
@@ -301,7 +306,7 @@ void main(){
     const onTouch = e => {
       const t = e.touches[0];
       if (!t) { ptr.has = false; if (ptr.inside && !running) start(); return; }
-      ptr.cx = t.clientX; ptr.cy = t.clientY; ptr.has = true;
+      ptr.x = t.pageX; ptr.y = t.pageY; ptr.page = true; ptr.has = true;
       wake();
     };
     const TOUCH = ['touchstart', 'touchmove', 'touchend', 'touchcancel'];
@@ -408,7 +413,7 @@ void main(){
       const time = (now - t0) / 1000;
 
       if (ptr.has) {
-        const x = (ptr.cx - pill.sx) / pill.k, y = (ptr.cy - pill.sy) / pill.k;
+        const x = (ptrX() - pill.sx) / pill.k, y = (ptrY() - pill.sy) / pill.k;
         ptr.inside = x >= 0 && y >= 0 && x <= W && y <= H;
         if (ptr.inside) { touched = true; ptr.last = now; hand = { x, y }; }
       } else ptr.inside = false;

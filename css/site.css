@@ -194,10 +194,14 @@ h2 { font: 700 clamp(34px, 5vw, 68px)/1 var(--display); letter-spacing: -.04em; 
 .stage-cap { position: absolute; right: 24px; bottom: 18px; font-size: 13px; color: var(--muted); }
 
 /* scene 1: use case matrix */
-.plot { position: absolute; inset: 56px 40px 52px 56px; border-left: 1.5px solid var(--line); border-bottom: 1.5px solid var(--line); }
-.ax { position: absolute; font-size: 13px; color: var(--muted); }
-.ax-y { left: 24px; top: 24px; }
-.ax-x { right: 40px; bottom: 22px; }
+.plot { position: absolute; inset: 56px 40px 52px 56px; border-left: 2px solid var(--figure); border-bottom: 2px solid var(--figure); }
+/* оси со стрелками: жирные чёрные, как остальная графика сайта */
+.arw { position: absolute; width: 12px; height: 12px; background: var(--figure); pointer-events: none; }
+.arw-y { left: -7px; top: -12px; clip-path: polygon(50% 0, 100% 100%, 0 100%); }
+.arw-x { right: -12px; bottom: -7px; clip-path: polygon(0 0, 100% 50%, 0 100%); }
+.ax { position: absolute; font-size: 13px; font-weight: 600; color: var(--ink); }
+.ax-y { left: 68px; top: 37px; }
+.ax-x { right: 28px; bottom: 22px; }
 .roi-count { position: absolute; right: 28px; top: 20px; font: 700 15px/1 var(--display); letter-spacing: -.02em; color: var(--muted); }
 .roi-count b { color: var(--figure); }
 .plot::before, .plot::after { content: ''; position: absolute; border: 0 dashed var(--line); pointer-events: none; opacity: 0; transition: opacity .6s; }
@@ -299,8 +303,8 @@ h2 { font: 700 clamp(34px, 5vw, 68px)/1 var(--display); letter-spacing: -.04em; 
   .sc-poc { min-height: 590px; }
   .poc-top { flex-direction: column; align-items: flex-start; gap: 2px; }
   .roi-count { left: 20px; right: auto; top: 18px; }
-  .ax-y { left: 20px; top: 44px; }
-  .ax-x { right: 20px; }
+  .ax-y { left: 36px; top: 51px; }
+  .ax-x { right: 10px; }
   .plot { inset: 70px 22px 46px 24px; }
   .quad span { display: none; }
   .plot i.top { --x2: 93 !important; }
