@@ -94,6 +94,9 @@ void main(){
   }
   function glovePath(c) { handPath(c); rr(c, -1, 30, 22, 7, 2); }
 
+  const live = new Set();
+  const syncCursor = () => document.documentElement.classList.toggle('venom-nocursor', [...live].some(v => v.hide));
+
   function init(wrap) {
     if (wrap.__venom) return;
     const btn = wrap.querySelector('.venom-btn');
@@ -119,7 +122,12 @@ void main(){
       wrap.classList.remove('venom--gl'); wrap.classList.add('venom--flat');
       cvGl.style.display = 'none';
     }
+    function unflat() {
+      wrap.classList.remove('venom--flat'); wrap.classList.add('venom--gl');
+      cvGl.style.display = '';
+    }
     function setupGl() {
+      shaders = [];
       gl = cvGl.getContext('webgl', { premultipliedAlpha: true, antialias: false, alpha: true });
       if (!gl || !gl.getExtension('OES_standard_derivatives')) return false;
       const sh = (type, src) => { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); shaders.push(s); return gl.getShaderParameter(s, gl.COMPILE_STATUS) ? s : null; };
@@ -138,17 +146,26 @@ void main(){
     const glOk = setupGl();
     if (glOk) wrap.classList.add('venom--gl'); else flat();
     let dead = !glOk;
-    const onLost = e => { e.preventDefault(); dead = true; stop(); flat(); };
+    // контекст WebGL может отняться (сон, переключение видеокарты) – ждём восстановления, а пока простая CSS-пилюля
+    const onLost = e => {
+      e.preventDefault(); dead = true; stop(); flat();
+      me.hide = false; syncCursor();
+      fx.clearRect(0, 0, cvFx.width, cvFx.height); hx.clearRect(0, 0, cvHand.width, cvHand.height);
+    };
+    const onRestored = () => { if (setupGl()) { dead = false; unflat(); reset(); fit(); start(); } };
     cvGl.addEventListener('webglcontextlost', onLost);
+    cvGl.addEventListener('webglcontextrestored', onRestored);
 
     // ---------- размеры ----------
-    let W = 0, H = 0, dpr = 1;
+    let W = 0, H = 0, dpr = 1, gdpr = 1;
     function fit() {
       dpr = Math.min(2, devicePixelRatio || 1);
+      gdpr = Math.min(1.5, dpr);
       W = wrap.offsetWidth + PADX * 2; H = wrap.offsetHeight + PADY * 2;
       [cvGl, cvFx, cvHand].forEach(c => {
         c.style.left = -PADX + 'px'; c.style.top = -PADY + 'px'; c.style.width = W + 'px'; c.style.height = H + 'px';
-        c.width = Math.round(W * dpr); c.height = Math.round(H * dpr);
+        const d = c === cvGl ? gdpr : dpr;
+        c.width = Math.round(W * d); c.height = Math.round(H * d);
       });
       if (!running) draw();
     }
@@ -162,6 +179,8 @@ void main(){
       pill.cx = (br.left + br.width / 2 - sr.left) / k; pill.cy = (br.top + br.height / 2 - sr.top) / k;
       pill.hw = br.width / k / 2; pill.r = br.height / k / 2;
       pill.L = Math.max(0, pill.hw - pill.r); pill.P = 4 * pill.L + 2 * Math.PI * pill.r;
+      const sc = clamp(pill.r / 32, 0.55, 1.2);
+      strands.forEach(st => { st.w = st.w0 * (st.hair ? 1 : sc); });
     }
     // контур пилюли по длине дуги: точка и внешняя нормаль
     function outline(s) {
@@ -191,7 +210,7 @@ void main(){
       const hair = i % 2 === 1, j = i >> 1;
       strands.push({
         hair, gi: hair ? [j % 8, (j + 1) % 8] : j % 8, phase: Math.random() * 6.28,
-        reachK: 0.55 + Math.random() * 0.4, w: hair ? 0.5 : 3.1 + Math.random() * 0.8,
+        reachK: 0.55 + Math.random() * 0.4, w0: hair ? 0.5 : 3.1 + Math.random() * 0.8, w: 0,
         s: 0, len: 0, pinned: false, amt: 0,
         p: new Float32Array(NP * 2), q: new Float32Array(NP * 2), off: (i - (N - 1) / 2) * 7
       });
@@ -200,7 +219,7 @@ void main(){
     let moundS = 0, mound = 0, moundV = 0, lean = 0;
     const skin = new Float32Array(8);
     const spikes = [], drops = [];
-    let ptr = null, lastReal = -1e9, inside = false;
+    let ptr = null, lastReal = -1e9;
     const ghost = { i: 0, u: 0, dur: 1 };
 
     const onMove = e => {
@@ -215,10 +234,11 @@ void main(){
       addEventListener('blur', onBlur);
     }
 
+    const me = { hide: false, D: Infinity };
+    live.add(me);
     function setCursor(hide) {
-      if (hide === inside) return;
-      inside = hide;
-      document.documentElement.classList.toggle('venom-nocursor', hide);
+      if (hide === me.hide) return;
+      me.hide = hide; syncCursor();
     }
 
     function handNow(now) {
@@ -277,6 +297,7 @@ void main(){
         mid = glove ? [hand.x + HAND_MID[0] * GS, hand.y + HAND_MID[1] * GS] : [hand.x, hand.y];
         D = Math.max(0, sdPill(mid[0], mid[1]));
       }
+      me.D = D;
       const { sense, reach, release } = opt;
 
       // переходы состояний
@@ -376,7 +397,13 @@ void main(){
         d.r = d.r0 * (1 - d.life / d.max);
         if (d.r <= 0) drops.splice(i, 1);
       }
+      if (!Number.isFinite(mound + moundV + moundS + lean) || strands.some(st => !Number.isFinite(st.len + st.s + st.p[(NP - 1) * 2] + st.p[(NP - 1) * 2 + 1]))) reset();
       return hand;
+    }
+    function reset() {
+      state = 'idle'; violent = false; mound = moundV = moundS = lean = 0;
+      spikes.length = drops.length = 0; skin.fill(0);
+      strands.forEach(st => { st.len = 0; st.s = 0; st.amt = 0; st.pinned = false; st.p.fill(0); st.q.fill(0); });
     }
 
     // ---------- отрисовка ----------
@@ -419,11 +446,11 @@ void main(){
       gl.viewport(0, 0, cvGl.width, cvGl.height);
       gl.disable(gl.SCISSOR_TEST); gl.clear(gl.COLOR_BUFFER_BIT);
       const pad = 34;
-      const sx = Math.max(0, Math.floor((bx0 - pad) * dpr)), sy = Math.max(0, Math.floor((H - by1 - pad - 12) * dpr));
-      const sw = Math.min(cvGl.width, Math.ceil((bx1 + pad) * dpr)) - sx, sh = Math.min(cvGl.height, Math.ceil((H - by0 + pad) * dpr)) - sy;
+      const sx = Math.max(0, Math.floor((bx0 - pad) * gdpr)), sy = Math.max(0, Math.floor((H - by1 - pad - 12) * gdpr));
+      const sw = Math.min(cvGl.width, Math.ceil((bx1 + pad) * gdpr)) - sx, sh = Math.min(cvGl.height, Math.ceil((H - by0 + pad) * gdpr)) - sy;
       if (sw <= 0 || sh <= 0) return;
       gl.enable(gl.SCISSOR_TEST); gl.scissor(sx, sy, sw, sh);
-      gl.uniform2f(U.uRes, cvGl.width, cvGl.height); gl.uniform1f(U.uDpr, dpr); gl.uniform1f(U.uLean, lean);
+      gl.uniform2f(U.uRes, cvGl.width, cvGl.height); gl.uniform1f(U.uDpr, gdpr); gl.uniform1f(U.uLean, lean);
       gl.uniform4f(U.uPill, pill.cx, pill.cy, pill.hw, pill.r);
       gl.uniform4f(U.uMound, ma[0], ma[1], mb[0], mb[1]);
       gl.uniform2f(U.uMoundR, pill.r * 0.7 * mAmt, rb * mAmt);
@@ -464,6 +491,9 @@ void main(){
     function drawHand(hand) {
       hx.setTransform(dpr, 0, 0, dpr, 0, 0); hx.clearRect(0, 0, W, H);
       if (!glove || !hand || !hand.inStage) return;
+      let best = null;
+      for (const v of live) if (!best || v.D < best.D) best = v;
+      if (best !== me) return;
       hx.save(); hx.translate(hand.x, hand.y); hx.scale(GS, GS);
       hx.lineJoin = 'round'; hx.lineCap = 'round'; hx.strokeStyle = '#111'; hx.fillStyle = '#fff';
       handPath(hx); hx.lineWidth = 2.4; hx.stroke(); hx.fill();
@@ -507,22 +537,23 @@ void main(){
     function frame(now) {
       raf = requestAnimationFrame(frame);
       const dt = Math.min(1 / 30, last ? (now - last) / 1000 : 1 / 60); last = now;
-      const hand = step(dt, now);
-      draw(hand);
+      try { draw(step(dt, now)); } catch (err) { console.warn('venom:', err); reset(); }
     }
     function start() { if (running || reduced || dead || !visible) return; running = true; last = 0; raf = requestAnimationFrame(frame); }
-    function stop() { running = false; cancelAnimationFrame(raf); }
+    function stop() { running = false; cancelAnimationFrame(raf); me.D = Infinity; setCursor(false); if (W) hx.clearRect(0, 0, cvHand.width, cvHand.height); }
 
     const ro = new ResizeObserver(fit); ro.observe(wrap);
     const io = new IntersectionObserver(es => { visible = es[es.length - 1].isIntersecting; visible ? start() : stop(); });
     io.observe(cvGl);
     fit(); start();
 
+    wrap.__venomDbg = () => ({ state, mound, moundS, lean, dead, running, visible, s: strands.map(st => [st.len, st.s, st.p[22], st.p[23]]) });
     wrap.__venom = () => {
       stop(); ro.disconnect(); io.disconnect();
       removeEventListener('pointermove', onMove); document.removeEventListener('pointerout', onLeave); removeEventListener('blur', onBlur);
       cvGl.removeEventListener('webglcontextlost', onLost);
-      document.documentElement.classList.remove('venom-nocursor');
+      live.delete(me); syncCursor();
+      cvGl.removeEventListener('webglcontextrestored', onRestored);
       if (gl && !dead) { gl.deleteProgram(prog); shaders.forEach(s => gl.deleteShader(s)); gl.deleteBuffer(buf); }
       [cvGl, cvFx, cvHand].forEach(c => c.remove());
       wrap.classList.remove('venom--gl', 'venom--flat');
