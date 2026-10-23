@@ -467,13 +467,15 @@
       el.innerHTML = `<span class="sr-only">${esc(words.join(' '))}</span>` + words.map(w => `<span class="rv" aria-hidden="true">${esc(w)}</span>`).join(' ');
       const spans = [...el.querySelectorAll('.rv')];
       // окна слов внахлёст, как stagger .65 в оригинале: каждое слово занимает свой отрезок пути
-      const start = 0.05, stop = 0.6, n = spans.length, total = stop - start;
+      const start = 0, stop = 1, n = spans.length, total = stop - start;
       const win = total * (1 - (0.65 * (n - 1)) / n), step = n > 1 ? (total - win) / (n - 1) : 0;
       return { el, end, spans, ranges: spans.map((_, i) => [start + i * step, start + i * step + win]), cur: -1, pos: 0, vel: 0 };
     });
+    // проявление начинается, когда абзац показался снизу, и заканчивается, когда его верх дошёл до середины экрана,
+    // поэтому текст у самого низа страницы успевает проявиться без прокрутки до упора
     const target = it => {
       const r = it.el.getBoundingClientRect(), vh = innerHeight;
-      return Math.max(0, Math.min(1, (vh - r.top) / (vh + r.height)));
+      return Math.max(0, Math.min(1, (vh * 0.95 - r.top) / (vh * 0.4)));
     };
     const paint = it => {
       it.spans.forEach((sp, i) => {

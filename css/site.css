@@ -147,6 +147,8 @@ img { display: block; max-width: 100%; }
 
 /* ---------- sections ---------- */
 section { padding: clamp(72px, 10vw, 140px) 0; }
+/* подход и игра стоят на одном белом фоне – без двойного отступа между ними */
+#approach { padding-bottom: clamp(32px, 4vw, 56px); }
 .sec-head { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 420px); gap: 24px 48px; align-items: end; margin-bottom: clamp(36px, 5vw, 64px); }
 h2 { font: 700 clamp(34px, 5vw, 68px)/1 var(--display); letter-spacing: -.04em; }
 .sec-head p { color: var(--muted); }
