@@ -888,3 +888,28 @@ body { --cut: var(--paper); }
   .blue { background: #fff; color: #000; }
   .job-body { display: block !important; }
 }
+
+/* ---------- venom button ---------- */
+.venom { position: relative; display: inline-flex; z-index: 5; isolation: isolate; }
+.venom-cv { position: absolute; pointer-events: none; }
+.venom-gl { z-index: 1; }
+.venom-fx { z-index: 3; }
+.venom-hand { z-index: 4; }
+.venom-btn {
+  position: relative; z-index: 2;
+  display: inline-flex; align-items: center; justify-content: center; gap: .55em;
+  height: 64px; padding: 0 36px; border: 0; border-radius: 999px;
+  font: 700 20px/1 -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', system-ui, sans-serif;
+  letter-spacing: -.02em; white-space: nowrap; text-decoration: none;
+  color: #f4f4f4; text-shadow: 0 1px 1px rgba(0,0,0,.55);
+  background: radial-gradient(120% 160% at 50% -30%, #5b5b60 0%, #1b1b1e 42%, #050506 72%);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.22), 0 8px 16px rgba(0,0,0,.28);
+  transition: transform .45s cubic-bezier(.34,1.8,.5,1);
+}
+.venom-btn svg { width: 22px; height: 22px; flex: none; }
+.venom-btn:active { transform: scale(.96); transition-duration: .12s; }
+.venom-btn:focus-visible { outline: 0; box-shadow: 0 0 0 4px rgba(0,0,0,.25); }
+.venom--gl .venom-btn { background: transparent; box-shadow: none; }
+.venom--gl .venom-btn:focus-visible { box-shadow: 0 0 0 4px rgba(0,0,0,.25); }
+html.venom-nocursor, html.venom-nocursor * { cursor: none !important; }
+@media (prefers-reduced-motion: reduce) { .venom-btn:active { transform: none; } }
