@@ -56,7 +56,7 @@ img { display: block; max-width: 100%; }
 
 /* ---------- hero ---------- */
 .blue { background: var(--surface); color: var(--on-blue); }
-.hero { position: relative; overflow: hidden; }
+.hero { position: relative; overflow: hidden; overflow: clip; }
 .nav {
   display: flex; align-items: center; justify-content: space-between; gap: 24px;
   padding-top: 22px; padding-bottom: 22px;
