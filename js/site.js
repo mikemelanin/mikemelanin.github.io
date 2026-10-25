@@ -309,11 +309,16 @@
       },
       dash(stage) {
         const poly = stage.querySelector('polyline');
+        const area = stage.querySelector('.spark-area');
         const cnt = stage.querySelector('.dash-count');
         const lat = stage.querySelector('.dash-lat');
         let n = 18240;
         const pts = Array.from({ length: 30 }, (_, i) => 22 + Math.sin(i / 3) * 6 + Math.random() * 6);
-        const draw = () => poly.setAttribute('points', pts.map((v, i) => (i / (pts.length - 1) * 100).toFixed(1) + ',' + (40 - v).toFixed(1)).join(' '));
+        const draw = () => {
+          const line = pts.map((v, i) => (i / (pts.length - 1) * 100).toFixed(1) + ',' + (40 - v).toFixed(1)).join(' ');
+          poly.setAttribute('points', line);
+          if (area) area.setAttribute('points', line + ' 100,40 0,40');
+        };
         draw();
         const id = setInterval(() => {
           pts.shift();
