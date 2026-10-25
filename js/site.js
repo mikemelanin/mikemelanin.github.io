@@ -460,16 +460,34 @@
   const reads = [...document.querySelectorAll('[data-reveal]')];
   if (reads.length && !still) {
     const MUTED = [210, 210, 215];
+    const rgb = el => getComputedStyle(el).color.match(/\d+(\.\d+)?/g).slice(0, 3).map(Number);
+    // каждое слово – в свой span прямо в тексте, поэтому ссылки и выделения внутри абзаца остаются на месте;
+    // делим только по обычным пробелам, неразрывные склеивают слова, как и раньше
+    const wrap = el => {
+      const walk = document.createTreeWalker(el, NodeFilter.SHOW_TEXT), nodes = [];
+      while (walk.nextNode()) nodes.push(walk.currentNode);
+      nodes.forEach(n => {
+        if (!n.textContent.trim()) return;
+        const frag = document.createDocumentFragment();
+        n.textContent.split(/([ \t\n\r\f]+)/).forEach(w => {
+          if (!w) return;
+          if (!w.trim()) return frag.append(w);
+          const sp = document.createElement('span');
+          sp.className = 'rv';
+          sp.textContent = w;
+          frag.append(sp);
+        });
+        n.replaceWith(frag);
+      });
+      return [...el.querySelectorAll('.rv')];
+    };
     const items = reads.map(el => {
-      const end = getComputedStyle(el).color.match(/\d+(\.\d+)?/g).slice(0, 3).map(Number);
-      const words = el.textContent.trim().split(/\s+/);
-      const esc = t => t.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
-      el.innerHTML = `<span class="sr-only">${esc(words.join(' '))}</span>` + words.map(w => `<span class="rv" aria-hidden="true">${esc(w)}</span>`).join(' ');
-      const spans = [...el.querySelectorAll('.rv')];
+      const spans = wrap(el), colors = new Map();
+      const end = spans.map(sp => { const host = sp.parentElement; if (!colors.has(host)) colors.set(host, rgb(host)); return colors.get(host); });
       // окна слов внахлёст, как stagger .65 в оригинале: каждое слово занимает свой отрезок пути
       const start = 0, stop = 1, n = spans.length, total = stop - start;
       const win = total * (1 - (0.65 * (n - 1)) / n), step = n > 1 ? (total - win) / (n - 1) : 0;
-      return { el, end, spans, ranges: spans.map((_, i) => [start + i * step, start + i * step + win]), cur: -1, pos: 0, vel: 0 };
+      return { el, end, spans, ranges: spans.map((_, i) => [start + i * step, start + i * step + win]), pos: 0, vel: 0, shown: -1 };
     });
     // проявление начинается, когда абзац показался снизу, и заканчивается, когда его верх дошёл до середины экрана,
     // поэтому текст у самого низа страницы успевает проявиться без прокрутки до упора
@@ -477,11 +495,14 @@
       const r = it.el.getBoundingClientRect(), vh = innerHeight;
       return Math.max(0, Math.min(1, (vh * 0.95 - r.top) / (vh * 0.4)));
     };
+    // перерисовываем только абзацы, которые сдвинулись: стили сотен слов на каждом кадре тормозили прокрутку
     const paint = it => {
+      if (it.pos === it.shown) return;
+      it.shown = it.pos;
       it.spans.forEach((sp, i) => {
         const [a, b] = it.ranges[i], t = Math.max(0, Math.min(1, (it.pos - a) / (b - a)));
-        const c = MUTED.map((m, k) => Math.round(m + (it.end[k] - m) * t));
-        sp.style.color = `rgb(${c})`;
+        const c = MUTED.map((m, k) => Math.round(m + (it.end[i][k] - m) * t));
+        sp.style.color = t < 1 ? `rgb(${c})` : '';
         sp.style.transform = t < 1 ? `translateY(${((1 - t) * 0.32).toFixed(3)}em)` : '';
         sp.style.filter = t < 1 ? `blur(${((1 - t) * 6).toFixed(2)}px)` : '';
       });
@@ -492,8 +513,10 @@
       const dt = Math.min(0.05, (now - prev) / 1000 || 0.016);
       prev = now;
       let moving = false;
-      items.forEach(it => {
-        const goal = target(it);
+      // сначала все замеры, потом все записи стилей, чтобы браузер не пересчитывал раскладку на каждом абзаце
+      const goals = items.map(target);
+      items.forEach((it, j) => {
+        const goal = goals[j];
         for (let i = 0; i < 4; i++) {
           const h = dt / 4, acc = (110 * (goal - it.pos) - 22 * it.vel) / 0.7;
           it.vel += acc * h; it.pos += it.vel * h;

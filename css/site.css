@@ -716,7 +716,7 @@ body { --cut: var(--paper); }
 .rn-banner small { display: block; font-size: 13px; font-weight: 600; color: var(--muted); }
 .rn-banner strong { display: block; font: 800 clamp(30px, 4.4vw, 56px)/1.05 var(--display); letter-spacing: -.05em; color: var(--figure); }
 .rn-banner span { display: block; margin-top: 6px; font-size: 15px; font-weight: 500; color: var(--ink); }
-.rn-screen { position: absolute; inset: 0; display: flex; overflow-y: auto; overscroll-behavior: contain; padding: 16px; background: color-mix(in srgb, var(--card) 45%, transparent); backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px); }
+.rn-screen { position: absolute; inset: 0; display: flex; overflow-y: auto; padding: 16px; background: color-mix(in srgb, var(--card) 45%, transparent); backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px); }
 .rn-screen[hidden] { display: none; }
 .rn-panel { width: min(480px, 100%); margin: auto; text-align: center; background: var(--card); border: 1px solid var(--line); border-radius: 24px; padding: 24px 26px; box-shadow: 0 24px 60px -30px rgba(0,0,0,.55); animation: panelIn .4s cubic-bezier(.2,.7,.2,1) both; }
 .rn-kicker { font-size: 13px; font-weight: 600; color: var(--figure); margin-bottom: 8px; }
@@ -778,7 +778,7 @@ body { --cut: var(--paper); }
 .teaser-facts .cd > span { grid-area: 1 / 1; }
 .teaser-facts.is-waiting > li { opacity: 0; }
 /* абзацы, которые проявляются при прокрутке */
-[data-reveal] .rv { display: inline-block; will-change: transform, filter; }
+[data-reveal] .rv { display: inline-block; }
 .teaser .btn { padding: 18px 26px; font-size: 17px; }
 .teaser .btn svg { transition: transform .2s; }
 .teaser .btn:hover svg { transform: translateX(3px); }

@@ -249,6 +249,13 @@
   // Phaser (~280 КБ в сжатом виде) и fx.js грузятся, только когда игрок навёл на Играть или нажал её
   let fx = null, fxLoad = null;
   const script = src => new Promise((ok, no) => { const el = document.createElement('script'); el.src = src; el.onload = ok; el.onerror = no; document.head.append(el); });
+  // при наведении файлы только скачиваются в кэш: разбор Phaser на главном потоке подвешивал прокрутку страницы
+  let fxWarm = false;
+  const warmFx = () => {
+    if (still || fxLoad || fxWarm) return;
+    fxWarm = true;
+    ['game/vendor/phaser-3.90.0.min.js', 'game/fx.js?v=2'].forEach(src => fetch(src).catch(() => {}));
+  };
   const loadFx = () => {
     if (still || fxLoad) return;
     fxLoad = (window.Phaser ? Promise.resolve() : script('game/vendor/phaser-3.90.0.min.js'))
@@ -453,8 +460,8 @@
     else p.buf = .14;
   };
 
-  screen.addEventListener('pointerover', e => { if (e.target.closest('[data-act="play"]')) loadFx(); });
-  screen.addEventListener('focusin', e => { if (e.target.closest('[data-act="play"]')) loadFx(); });
+  screen.addEventListener('pointerover', e => { if (e.target.closest('[data-act="play"]')) warmFx(); });
+  screen.addEventListener('focusin', e => { if (e.target.closest('[data-act="play"]')) warmFx(); });
   screen.addEventListener('click', e => {
     const b = e.target.closest('[data-act]');
     if (!b) return;
