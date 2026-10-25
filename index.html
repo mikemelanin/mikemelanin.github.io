@@ -16,7 +16,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&family=Unbounded:wght@500;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/site.css?v=23">
+<link rel="stylesheet" href="css/site.css?v=24">
 </head>
 <body>
 <header class="topbar blue">
@@ -172,14 +172,17 @@
       </div>
       <div class="fl" tabindex="-1" role="application" aria-label="Игра: соберите AI-систему">
         <canvas aria-hidden="true"></canvas>
+        <div class="fl-screen"></div>
         <div class="fl-hud" hidden>
-          <div class="fl-week"><span class="fl-wname"></span><span class="fl-bar"><i></i></span></div>
-          <span class="fl-chip fl-links" title="Свободные линии"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M4 19c6 0 10-14 16-14"/><circle cx="4" cy="19" r="2" fill="currentColor"/><circle cx="20" cy="5" r="2" fill="currentColor"/></svg><span class="sr-only">Свободных линий:</span><b>0</b></span>
-          <span class="fl-chip fl-rub"><b>0</b> млн ₽</span>
+          <div class="fl-week"><b class="fl-wnum"></b><span class="fl-wname"></span></div>
+          <div class="fl-goal"><span class="fl-gtext">Продержитесь <b class="fl-time">0:20</b></span><span class="fl-bar"><i></i></span></div>
+          <span class="fl-chip fl-links" title="Свободные линии"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M4 19c6 0 10-14 16-14"/><circle cx="4" cy="19" r="2" fill="currentColor"/><circle cx="20" cy="5" r="2" fill="currentColor"/></svg>Линии: <b>0</b></span>
         </div>
         <div class="fl-banner" aria-live="polite"></div>
+        <div class="fl-alarm" role="alert"></div>
+        <div class="fl-coach" aria-live="polite"></div>
         <p class="fl-tip" aria-live="polite"></p>
-        <div class="fl-screen"></div>
+        <button type="button" class="fl-skip" hidden>Пропустить обучение</button>
         <button type="button" class="fl-ctrl fl-pause" aria-label="Пауза"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6.5" y="5" width="3.6" height="14" rx="1.2"/><rect x="13.9" y="5" width="3.6" height="14" rx="1.2"/></svg></button>
         <button type="button" class="fl-ctrl fl-sound" aria-pressed="true" aria-label="Звук"><svg class="i-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5Z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg><svg class="i-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5Z"/><path d="m16 9 5 6M21 9l-5 6"/></svg></button>
       </div>
@@ -247,7 +250,7 @@
 
 <script src="js/site.js?v=9"></script>
 <script src="js/venom-button.js?v=9" defer></script>
-<script src="game/flow.js?v=1" defer></script>
+<script src="game/flow.js?v=2" defer></script>
 <script src="twin/kb.js?v=2" defer></script>
 <script src="twin/twin.js?v=2" defer></script>
 </body>

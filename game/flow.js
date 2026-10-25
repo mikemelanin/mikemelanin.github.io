@@ -1,21 +1,23 @@
 // Игра "Соберите AI-систему": схема-поток в духе Mini Metro. Чёрные линии и узлы, красный – только для пробок.
 // Игрок тянет линии: отдел – AI-агент – данные. Запрос бежит точкой от отдела к агенту, агент сходит в данные и вернёт ответ.
-// Не хватает линии или мощности – у отдела копится очередь; красная очередь держится долго – отдел возвращается к Excel.
-// 4 недели, после каждой выбор усиления. Тексты и баланс – в SRC, DEPT, WEEKS, UPS, WHY.
+// Правила всегда на виду: таймер недели по центру сверху, счётчик линий со словом, красная очередь – крупное предупреждение.
+// Обучение – отдельная фаза до недели 1, его можно пропустить. Начало каждой недели – чекпойнт: проигрыш переигрывает только её.
+// Тексты и баланс – в SRC, DEPT, WEEKS, UPS, WHY и блоке balance.
 (() => {
   const root = document.querySelector('.fl');
   if (!root) return;
-  const cv = root.querySelector('canvas'), ctx = cv.getContext('2d');
-  const hud = root.querySelector('.fl-hud');
-  const weekEl = hud.querySelector('.fl-wname'), barEl = hud.querySelector('.fl-bar');
-  const linksEl = hud.querySelector('.fl-links'), rubEl = hud.querySelector('.fl-rub');
-  const screen = root.querySelector('.fl-screen');
-  const banner = root.querySelector('.fl-banner');
-  const tipEl = root.querySelector('.fl-tip');
-  const pauseBtn = root.querySelector('.fl-pause'), soundBtn = root.querySelector('.fl-sound');
+  const $ = s => root.querySelector(s);
+  const cv = $('canvas'), ctx = cv.getContext('2d');
+  const hud = $('.fl-hud');
+  const wnumEl = $('.fl-wnum'), wnameEl = $('.fl-wname');
+  const goalEl = $('.fl-goal'), timeEl = $('.fl-time'), barEl = $('.fl-bar');
+  const linksEl = $('.fl-links'), linksN = linksEl.querySelector('b');
+  const screen = $('.fl-screen'), banner = $('.fl-banner'), alarmEl = $('.fl-alarm'), coachEl = $('.fl-coach'), tipEl = $('.fl-tip');
+  const skipBtn = $('.fl-skip'), pauseBtn = $('.fl-pause'), soundBtn = $('.fl-sound');
   const TG = 'https://t.me/mike_melanin';
   const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const coarse = matchMedia('(pointer: coarse)').matches;
+  const TAP = coarse ? 'Тапните' : 'Кликните';
   const TAU = Math.PI * 2, RED = '#E5484D';
   let C = {};
   const readColors = () => {
@@ -24,38 +26,46 @@
     C = { paper: v('--paper'), card: v('--card'), ink: v('--ink'), muted: v('--muted'), line: v('--line'), chip: v('--chip') };
   };
   readColors();
+  const store = {
+    get: k => { try { return localStorage.getItem(k); } catch { return null; } },
+    set: (k, v) => { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch {} },
+  };
 
   // ---------- content ----------
-  // падежи нужны подсказкам: "доступ к базе знаний", "свяжите продажи и CRM"
+  // каждый отдел спрашивает только свои данные: фигура на запросе = фигура источника
   const SRC = {
-    kb: { name: 'База знаний', shape: 'sq', dat: 'базе знаний', acc: 'базу знаний' },
-    crm: { name: 'CRM', shape: 'tr', dat: 'CRM', acc: 'CRM' },
-    erp: { name: '1С', shape: 'di', dat: '1С', acc: '1С' },
-    doc: { name: 'Договоры', shape: 'cr', dat: 'договорам', acc: 'договоры' },
+    kb: { name: 'База знаний', shape: 'sq' },
+    crm: { name: 'CRM', shape: 'tr' },
+    erp: { name: '1С', shape: 'di' },
+    doc: { name: 'Договоры', shape: 'cr' },
   };
-  // needs – из каких данных отдел спрашивает и как часто; fail – заголовок проигрыша
   const DEPT = {
-    sup: { name: 'Поддержка', gen: 'поддержки', acc: 'поддержку', needs: { kb: 3, crm: 1 }, fail: 'Поддержка вернулась к ручным ответам' },
-    sal: { name: 'Продажи', gen: 'продаж', acc: 'продажи', needs: { crm: 3, kb: 1 }, fail: 'Продажи вернулись к таблицам' },
-    fin: { name: 'Финансы', gen: 'финансов', acc: 'финансы', needs: { erp: 3, crm: 1 }, fail: 'Финансы вернулись к Excel' },
-    law: { name: 'Юристы', gen: 'юристов', acc: 'юристов', needs: { doc: 3, kb: 1 }, fail: 'Юристы вернулись к бумаге' },
+    sup: { name: 'Поддержка', src: 'kb', quit: 'Поддержка бросит AI', fail: 'Поддержка вернулась к ручным ответам' },
+    sal: { name: 'Продажи', src: 'crm', quit: 'Продажи бросят AI', fail: 'Продажи вернулись к таблицам' },
+    fin: { name: 'Финансы', src: 'erp', quit: 'Финансы бросят AI', fail: 'Финансы вернулись к Excel' },
+    law: { name: 'Юристы', src: 'doc', quit: 'Юристы бросят AI', fail: 'Юристы вернулись к бумаге' },
   };
-  // каждая неделя добавляет отдел и его данные; dur – секунды
+  // обучение идёт на поддержке и базе знаний, недели добавляют по отделу; dur – секунды, lines – новые линии
+  const TUT_N = 5;
   const WEEKS = [
-    { name: 'Пилот', dept: 'sup', src: 'kb', dur: 20, title: 'Пилот в поддержке', text: 'Ответы клиентам из базы знаний' },
-    { name: 'Продажи', dept: 'sal', src: 'crm', dur: 24, title: 'Подключаем продажи', text: 'Продажам нужна CRM' },
-    { name: 'Финансы', dept: 'fin', src: 'erp', dur: 24, title: 'Подключаем финансы', text: 'Финансам нужны данные из 1С' },
-    { name: 'Вся компания', dept: 'law', src: 'doc', dur: 26, title: 'AI во всей компании', text: 'Юристам нужны договоры' },
+    { dept: 'sal', src: 'crm', dur: 20, lines: 2, what: 'Новый отдел' },
+    { dept: 'fin', src: 'erp', dur: 22, lines: 2, what: 'Новый отдел · запросов больше' },
+    { dept: 'law', src: 'doc', dur: 24, lines: 2, what: 'Новый отдел · запросов больше' },
+    { name: 'Вся компания', dur: 26, lines: 0, what: 'Пик нагрузки – просто продержитесь' },
   ];
+  const wname = w => w.dept ? DEPT[w.dept].name : w.name;
+  // предлог и последнее слово не остаются одни на строке: "к Excel", "ручным ответам"
+  const glue = t => t.replace(/ (к|в|с|и|на|о|у) /g, ' $1 ').replace(/ (\S+)$/, ' $1');
+  const GPU = 3, GPU_MAX = 1;   // сервер мощнее: +GPU к мощности каждого агента
   const UPS = {
-    gpu: { name: 'Сервер мощнее', text: 'Каждый агент держит на 2 запроса больше', max: 2 },
-    agent: { name: 'Второй AI\u2011агент', text: 'Ещё один поток запросов и 3 линии к нему', max: 1 },
-    cache: { name: 'Кэш ответов', text: 'Треть вопросов агент отвечает сразу, без похода в данные', max: 1 },
-    links: { name: '+3 линии', text: 'Подключите отделы к данным вторым маршрутом', max: 2 },
+    agent: { name: 'Второй AI‑агент', max: 1, lines: 4, text: () => 'Свой поток запросов и +4 линии к нему. Разделите отделы между агентами' },
+    gpu: { name: 'Сервер мощнее', max: GPU_MAX, text: () => `${by('agent').length > 1 ? 'Каждый агент держит' : 'Агент держит'} ${cap + GPU} запросов разом вместо ${cap}` },
+    cache: { name: 'Кэш ответов', max: 1, text: () => '40% запросов агент отвечает сразу, без похода в данные' },
+    links: { name: '+3 линии', max: 1, lines: 3, need: () => by('agent').length > 1, text: () => 'Подключите отдел к обоим агентам – запросы пойдут к свободному' },
   };
   // почему отдел сдался и что посоветовал бы Майк
   const WHY = {
-    off: ['Отдел так и не подключили к AI\u2011агенту.', 'Пилот без пользователей не взлетает. Подключайте отдел с первого дня и спрашивайте, что ему мешает.'],
+    off: ['Отдел так и не подключили к AI‑агенту.', 'Пилот без пользователей не взлетает. Подключайте отдел с первого дня и спрашивайте, что ему мешает.'],
     data: ['Агент не видел нужных данных, ответов не было.', 'Сначала карта данных и доступы, потом модель. Агент без нужных данных – просто чат-бот.'],
     load: ['Агент не успевал, очередь росла быстрее ответов.', 'Нагрузку на масштабе считайте до запуска. Мощность и второго агента закладывайте заранее, а частые ответы кэшируйте.'],
   };
@@ -65,15 +75,15 @@
   const OVER_T = 8;          // секунд красной очереди до проигрыша
   const CAP = 3;             // запросов, которые агент держит одновременно
   const THINK = .35, THINK2 = .2;
-  const CACHE = .33;
+  const CACHE = .4;
   const GAP = .22;           // пауза между запросами одного отдела на линии
   const TRIP = .8;           // секунд на пролёт между колонками
-  // запросов в секунду от одного отдела: растёт с неделями и к концу недели
-  const rate = () => demo ? .42 : tut ? .3 : (.34 + .09 * week) * (1 + .5 * weekT / WEEKS[week].dur);
+  // запросов в секунду от одного отдела: своя база у каждой недели, к концу недели растёт
+  const BASE = [.55, .5, .71, .94], RAMP = .5;
+  const rate = () => demo ? .42 : tut ? .3 : BASE[week] * (1 + RAMP * weekT / WEEKS[week].dur);
 
   // ---------- sound ----------
-  let ac = null, muted = false;
-  try { muted = localStorage.getItem('mm-flow-muted') === '1'; } catch {}
+  let ac = null, muted = store.get('mm-flow-muted') === '1';
   soundBtn.setAttribute('aria-pressed', String(!muted));
   // На iPhone Web Audio молчит при беззвучном режиме, поэтому просим режим playback, как у музыки.
   const audio = () => {
@@ -116,23 +126,28 @@
   soundBtn.addEventListener('click', () => {
     muted = !muted;
     soundBtn.setAttribute('aria-pressed', String(!muted));
-    try { localStorage.setItem('mm-flow-muted', muted ? '1' : '0'); } catch {}
+    store.set('mm-flow-muted', muted ? '1' : '0');
   });
 
   // ---------- state ----------
-  // state: intro – демо-схема под заставкой, run, pick – выбор усиления, pause, over, win
+  // state: intro – демо-схема под заставкой, run – игра или обучение (tut > 0), pick – выбор усиления, pause, over, win
   let state = 'intro', demo = true;
   let nodes = [], links = [], dots = [], ghosts = [];
-  let week = 0, weekT = 0, tut = 0, free = 0, cap = CAP, cacheOn = false;
+  let week = 0, weekT = 0, tut = 0, cutOnce = false, free = 0, cap = CAP, cacheOn = false;
   let answered = 0, spawned = 0, redT = 0, maxQ = 0, clock = 0, used = {}, warned = 0, hintT = 0;
+  // grace – секунды в начале недели (пока виден баннер), когда очередь ещё не краснеет; util – средняя загрузка агентов
+  let grace = 0, util = 0, mem = null;
   let sel = null, drag = null, tap = null, hover = null;
-  let best = 0;
-  try { best = +localStorage.getItem('mm-flow-best') || 0; } catch {}
+  let best = +store.get('mm-flow-best') || 0;
+  const TUTK = 'mm-flow-tut', SAVE = 'mm-flow-save';
+  let tutDone = store.get(TUTK) === '1';
 
   const by = kind => nodes.filter(n => n.kind === kind);
   const src = key => nodes.find(n => n.kind === 'src' && n.key === key);
+  const srcOf = d => src(DEPT[d.key].src);
   const linkOf = (a, b) => links.find(l => (l.ag === a && l.n === b) || (l.ag === b && l.n === a));
   const other = (l, n) => l.ag === n ? l.n : l.ag;
+  const agentsOf = d => links.filter(l => l.n === d).map(l => l.ag);
   // соединять можно только через агента: отдел – агент или агент – данные
   const canPair = (a, b) => a !== b && (a.kind === 'agent') !== (b.kind === 'agent');
   const add = (kind, key) => {
@@ -140,12 +155,24 @@
     nodes.push(n);
     return n;
   };
+  const link = (a, b) => {
+    const ag = a.kind === 'agent' ? a : b, l = { ag, n: ag === a ? b : a, born: clock };
+    curve(l);
+    links.push(l);
+    return l;
+  };
   const dIdx = n => Object.keys(DEPT).indexOf(n.key);
+  // что мешает отделу: off – нет линии к агенту, data – его агенты не видят его данных, load – просто не успевают
+  const diag = d => {
+    const ags = agentsOf(d), s = srcOf(d);
+    return !ags.length ? 'off' : !ags.some(a => linkOf(a, s)) ? 'data' : 'load';
+  };
 
   // ---------- size & layout ----------
   // Широкий экран: данные слева, агенты по центру, отделы справа. Телефон: данные сверху, отделы снизу.
   // tight – телефон боком: высоты мало, подписи уходят вбок от узлов
-  let W = 800, H = 480, dpr = 1, land = true, tight = false, R = 18, RA = 24, speed = 300, LW = 3, FS = 12;
+  // flat – узлы идут слева направо: на широком экране всегда, на телефоне – пока идёт обучение
+  let W = 800, H = 480, dpr = 1, land = true, flat = true, tight = false, R = 18, RA = 24, speed = 300, LW = 3, FS = 12, A0 = 0, A1 = 0;
   const resize = () => {
     const r = cv.getBoundingClientRect();
     if (!r.width) return;
@@ -154,26 +181,40 @@
     cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
     land = W / H > 1.05;
     tight = land && H < 360;
+    root.classList.toggle('is-port', !land);
+    root.classList.toggle('is-tight', tight);
     R = tight ? 12 : Math.max(14, Math.min(22, Math.min(W, H) * .04));
     RA = R * 1.35;
     LW = R > 16 ? 3.5 : 3;
     FS = R >= 19 ? 13 : 12;
     layout(true);
     links.forEach(curve);
+    placeAll();
     draw();
   };
+  // Обучение: три узла одной строкой под карточкой подсказки, чтобы она ничего не закрывала
+  const tutRow = () => {
+    const top = (hud.hidden ? 50 : relTop(hud)) + 8;
+    const ch = coachEl.classList.contains('is-on') ? coachEl.offsetHeight : 110;
+    return Math.min(H - 58 - RA - 34, Math.max(H * (land ? .5 : .55), top + ch + RA + 24));
+  };
   const layout = snap => {
+    flat = land || tut > 0;
     const lanes = { src: by('src'), agent: by('agent'), dept: by('dept') };
     const along = { src: 0, agent: .5, dept: 1 };
     let a0, a1, c0, c1;
-    if (tight) { a0 = Math.max(W * .13, 104); a1 = W - 132; c0 = 54; c1 = H - 46; }
-    else if (land) { a0 = W * .13; a1 = W * .84; c0 = 70; c1 = H - 58; }
-    else { a0 = 102; a1 = H - 100; c0 = 6; c1 = W - 30; }
+    if (tight) { a0 = Math.max(W * .13, 104); a1 = W - 132; c0 = 58; c1 = H - 46; }
+    else if (land) { a0 = W * .13; a1 = W * .84; c0 = 76; c1 = H - 58; }
+    else if (flat) { a0 = W * .16; a1 = W * .76; c0 = c1 = H / 2; }
+    // сверху на телефоне два ряда HUD: неделя с линиями и таймер; подписи данных – над узлами
+    else { a0 = (hud.hidden ? 100 : relTop(hud)) + R + 32; a1 = H - 100; c0 = 6; c1 = W - 30; }
+    A0 = a0; A1 = a1;
     speed = (a1 - a0) / 2 / TRIP;
+    const row = tut ? tutRow() : null;
     for (const kind in lanes) lanes[kind].forEach((n, i, all) => {
-      const f = along[kind], c = c0 + (c1 - c0) * (i + .5) / all.length;
+      const f = along[kind], c = row ?? c0 + (c1 - c0) * (i + .5) / all.length;
       const a = a0 + (a1 - a0) * f;
-      n.tx = land ? a : c; n.ty = land ? c : a;
+      n.tx = flat ? a : c; n.ty = flat ? c : a;
       if (snap || !n.x) { n.x = n.tx; n.y = n.ty; }
     });
   };
@@ -183,7 +224,7 @@
   const N = 22;
   const curve = l => {
     const a = l.ag, b = l.n, dx = b.x - a.x, dy = b.y - a.y;
-    const k1 = land ? .5 : .3, k2 = land ? .3 : .5;
+    const k1 = flat ? .5 : .3, k2 = flat ? .3 : .5;
     const c1x = a.x + dx * k1, c1y = a.y + dy * k2, c2x = b.x - dx * k1, c2y = b.y - dy * k2;
     const pts = l.pts || (l.pts = new Float32Array((N + 1) * 2)), cum = l.cum || (l.cum = new Float32Array(N + 1));
     let len = 0;
@@ -223,12 +264,6 @@
     r.ag = null;
     if (nodes.includes(r.d)) r.d.q.unshift(r);
   };
-  const ask = d => {
-    const pool = Object.entries(DEPT[d.key].needs).filter(([s]) => src(s));
-    let x = Math.random() * pool.reduce((s, [, w]) => s + w, 0);
-    for (const [s, w] of pool) if ((x -= w) < 0) return s;
-    return pool[0][0];
-  };
   const arrive = p => {
     const r = p.r;
     if (p.kind === 'ask') r.ag.jobs.push({ r, t: THINK, ph: 1 });
@@ -239,19 +274,15 @@
       if (demo) return;
       answered++;
       SFX.note(dIdx(r.d), answered);
-      paintHud();
     }
   };
   const dispatch = d => {
-    const ags = links.filter(l => l.n === d).map(l => l.ag);
-    let pick = null, at = -1;
-    // берём первый запрос, для которого есть свободный агент с доступом к нужным данным
-    for (let i = 0; i < Math.min(d.q.length, 8) && !pick; i++) {
-      const s = src(d.q[i].s);
-      for (const a of ags) if (a.busy < cap && linkOf(a, s) && (!pick || a.busy < pick.busy)) { pick = a; at = i; }
-    }
+    const s = srcOf(d);
+    let pick = null;
+    // свободный агент с доступом к данным отдела, из нескольких – наименее занятый
+    for (const a of agentsOf(d)) if (a.busy < cap && linkOf(a, s) && (!pick || a.busy < pick.busy)) pick = a;
     if (!pick) return;
-    const [r] = d.q.splice(at, 1);
+    const r = d.q.shift();
     r.ag = pick; pick.busy++;
     send(linkOf(d, pick), d, 'ask', r);
     d.gapT = GAP;
@@ -272,7 +303,7 @@
       if ((d.spawnT -= dt) <= 0) {
         d.spawnT = (.75 + Math.random() * .5) / rate();
         // в обучении и в демо очередь не переполняется
-        if (!((demo || tut) && d.q.length >= (demo ? 3 : QMAX))) { d.q.push({ s: ask(d), d, ag: null }); if (!demo) spawned++; }
+        if (!((demo || tut) && d.q.length >= (demo ? 3 : QMAX))) { d.q.push({ s: DEPT[d.key].src, d, ag: null }); if (!demo) spawned++; }
       }
       d.gapT -= dt;
     }
@@ -303,9 +334,14 @@
     }
     if (demo) return;
 
+    if (grace > 0) grace -= dt;
+    if (!tut) {
+      const ags = by('agent'), u = ags.reduce((s, a) => s + a.busy, 0) / (cap * ags.length);
+      util += (u - util) * Math.min(1, dt / 4);
+    }
     let anyRed = false;
     for (const d of by('dept')) {
-      const red = !tut && d.q.length > QMAX;
+      const red = !tut && grace <= 0 && d.q.length > QMAX;
       if (red && !d.red) SFX.warn();
       d.red = red;
       d.over = red ? d.over + dt / OVER_T : Math.max(0, d.over - dt / (OVER_T * 2));
@@ -322,12 +358,120 @@
       if (weekT >= WEEKS[week].dur) return endWeek();
     }
     if ((hintT -= dt) <= 0) { hintT = .5; hints(); }
-    paintBar();
+    alarm();
+    paintGoal();
   };
 
-  // ---------- hints ----------
-  // ghost – пунктир, который сам тянется от узла к узлу и показывает, что сделать
-  let ghost = null, tipText = '', tipLock = 0;
+  // ---------- overlays ----------
+  // Плашки (предупреждение, баннер недели, обучение, подсказка) ложатся в свободную от узлов полосу.
+  // Узел с подписью и очередью – прямоугольник; ищем по высоте зазор, ближайший к нужной точке.
+  const boxes = () => {
+    ctx.font = `600 ${FS}px Onest, system-ui, sans-serif`;
+    const tw = s => ctx.measureText(s).width + 8;
+    const out = [];
+    for (const n of nodes) {
+      const x = n.tx, y = n.ty, at = out.length;
+      if (n.kind === 'src') {
+        const r = R * 1.15 + 5, w = tw(SRC[n.key].name);
+        out.push([x - r, y - r, x + r, y + r]);
+        if (tight) out.push([x - R - 8 - w, y - 9, x, y + 9]);
+        else if (flat) out.push([x - w / 2, y + R + 5, x + w / 2, y + R + 25]);
+        else out.push([x - w / 2, y - R - 23, x + w / 2, y - R - 3]);
+      } else if (n.kind === 'agent') {
+        const r = RA + 10, w = tw('AI-агент 2'), ly = y + RA + (tight ? 16 : 22);
+        out.push([x - r, y - r, x + r, y + r]);
+        if (flat) out.push([x - w / 2, ly - 9, x + w / 2, ly + 9]);
+        else out.push([x + RA + 8, y - 9, x + RA + 12 + w, y + 9]);
+      } else {
+        const r = R * 1.02, w = tw(DEPT[n.key].name);
+        out.push([x - r - 10, y - r - 12, x + r + 44, y + r + 10]);
+        if (tight) out.push([x + r + 40, y - 9, x + r + 45 + w, y + 9]);
+        else { const ly = y + r + (flat ? 15 : 14); out.push([x - w / 2, ly - 9, x + w / 2, ly + 9]); }
+      }
+      for (let i = at; i < out.length; i++) out[i][4] = n.kind;
+    }
+    return out;
+  };
+  const relTop = el => el.getBoundingClientRect().bottom - cv.getBoundingClientRect().top;
+  // на широком экране кроме центра есть полосы между колонками – там только линии
+  const sides = all => {
+    const edge = (k, f, i) => Math.max(...all.filter(b => b[4] === k).map(b => f * b[i]), -1e4) * f;
+    return [[edge('src', 1, 2), edge('agent', -1, 0)], [edge('agent', 1, 2), edge('dept', -1, 0)]];
+  };
+  const spot = (w, h, py, taken) => {
+    const top = (hud.hidden ? 8 : relTop(hud)) + 6, bot = H - 58;
+    const all = boxes(), xs = [W / 2];
+    if (land) xs.push(...sides(all).map(([a, b]) => (a + b) / 2));
+    all.push(...taken);
+    // точки линий: плашка не садится на перекрёсток, где игрок тапом убирает линии
+    const lp = [];
+    for (const l of links) if (l.pts) for (let i = 0; i <= N; i += 2) lp.push(l.pts[i * 2], l.pts[i * 2 + 1]);
+    let best = null;
+    for (const cx of xs) {
+      const x0 = cx - w / 2 - 3, x1 = cx + w / 2 + 3;
+      if (x0 < 2 || x1 > W - 2) continue;
+      const ys = all.filter(b => b[2] > x0 && b[0] < x1).map(b => [b[1] - 6, b[3] + 6]).sort((p, q) => p[0] - q[0]);
+      const gaps = [];
+      let y = top;
+      for (const [a, b] of ys) { if (a > y) gaps.push([y, a]); y = Math.max(y, b); }
+      if (bot > y) gaps.push([y, bot]);
+      for (const [a, b] of gaps) {
+        if (b - a < h) continue;
+        const ts = [Math.max(a, Math.min(b - h, py - h / 2))];
+        for (let t = a; t <= b - h; t += 10) ts.push(t);
+        ts.push(b - h);
+        for (const t of ts) {
+          let hit = 0;
+          for (let k = 0; k < lp.length; k += 2) if (lp[k] > x0 && lp[k] < x1 && lp[k + 1] > t && lp[k + 1] < t + h) hit++;
+          const sc = Math.abs(t + h / 2 - py) + Math.abs(cx - W / 2) * .6 + hit * 6;
+          if (!best || sc < best.sc) best = { sc, x: cx, y: t };
+        }
+      }
+    }
+    return best;
+  };
+  const placeAll = () => {
+    const taken = [], top = (hud.hidden ? 8 : relTop(hud)) + 6;
+    // обучение: карточка сразу под HUD, а узлы стоят строкой ниже неё (см. tutRow)
+    if (coachEl.classList.contains('is-on')) {
+      const w = coachEl.offsetWidth, h = coachEl.offsetHeight;
+      coachEl.style.left = `${W / 2}px`; coachEl.style.top = `${top + 2}px`;
+      taken.push([W / 2 - w / 2, top + 2, W / 2 + w / 2, top + 2 + h]);
+    }
+    for (const [el, py] of [[alarmEl, .5], [banner, .42], [tipEl, .6]]) {
+      el.classList.remove('is-away', 'is-compact', 'is-min');
+      el.style.maxWidth = '';
+      if (!el.classList.contains('is-on')) continue;
+      // при красной тревоге её строка уже говорит, что делать, – обычная подсказка не нужна
+      if (el === tipEl && alarmKey && !tipEl.classList.contains('is-alert')) { el.classList.add('is-away'); continue; }
+      let w = el.offsetWidth, h = el.offsetHeight;
+      let p = spot(w, h, H * py, taken);
+      // тесно: тревога и баннер становятся узкими и мельче, чтобы встать в полосу между колонками
+      // на телефоне – тонкая полоса во всю ширину, боком – узкая колонка между узлами
+      if (!p && el !== tipEl) {
+        el.classList.add('is-compact');
+        el.style.maxWidth = `${land ? Math.max(180, Math.max(...sides(boxes()).map(([a, b]) => b - a)) - 10) : W - 24}px`;
+        w = el.offsetWidth; h = el.offsetHeight; p = spot(w, h, H * py, taken);
+        // совсем тесно (маленький телефон): у тревоги остаётся одна строка с отделом и секундами
+        if (!p && el === alarmEl) { el.classList.add('is-min'); w = el.offsetWidth; h = el.offsetHeight; p = spot(w, h, H * py, taken); }
+      }
+      // тревога и баннер видны всегда: если свободной полосы нет, встают под HUD поверх схемы
+      if (!p && el !== tipEl) {
+        let y = top;
+        for (let moved = true; moved;) {
+          moved = false;
+          for (const b of taken) if (b[2] > W / 2 - w / 2 && b[0] < W / 2 + w / 2 && b[3] > y && b[1] < y + h) { y = b[3] + 6; moved = true; }
+        }
+        p = { x: W / 2, y };
+      }
+      if (!p) { el.classList.add('is-away'); continue; }
+      el.style.left = `${p.x}px`; el.style.top = `${p.y}px`;
+      taken.push([p.x - w / 2, p.y, p.x + w / 2, p.y + h]);
+    }
+  };
+
+  // подсказка-тост: ошибки, "проведите линию", нехватка линий
+  let tipText = '', tipLock = 0;
   const tip = (text, alert = false, hold = 0) => {
     if (tipLock > clock && !hold) return;
     if (hold) tipLock = clock + hold;
@@ -335,61 +479,138 @@
     tipText = text;
     tipEl.classList.toggle('is-on', !!text);
     tipEl.classList.toggle('is-alert', alert);
-    if (text) tipEl.textContent = text;
+    if (text) { tipEl.textContent = text; placeAll(); }
   };
-  const nearAgent = n => by('agent').reduce((m, a) => !m || Math.hypot(a.x - n.x, a.y - n.y) < Math.hypot(m.x - n.x, m.y - n.y) ? a : m, null);
+
+  // крупное предупреждение: какой отдел сейчас сдастся и через сколько секунд
+  let alarmKey = '';
+  const fix = d => {
+    const k = diag(d), D = DEPT[d.key].name, S = SRC[DEPT[d.key].src].name;
+    if (k === 'off') return `Проведите линию: ${D} → AI‑агент`;
+    if (k === 'data') return `Проведите линию: AI‑агент → ${S}`;
+    const ags = by('agent');
+    if (ags.length > 1 && ags.some(a => !linkOf(a, d)) && free > 0) return 'Подключите отдел и его данные ко второму агенту';
+    const can = [['agent', 'второго агента'], ['gpu', 'сервер мощнее'], ['cache', 'кэш ответов']].find(([k]) => (used[k] || 0) < UPS[k].max);
+    if (week === WEEKS.length - 1 || !can) return `Держитесь: до конца недели ${timeEl.textContent}`;
+    return `Мало мощности: после недели возьмите ${can[1]}`;
+  };
+  const alarm = () => {
+    let html = '';
+    if (state === 'run' && !tut) {
+      const d = by('dept').filter(d => d.red).sort((a, b) => b.over - a.over)[0];
+      if (d) html = `<strong>${DEPT[d.key].quit} через ${Math.max(1, Math.ceil((1 - d.over) * OVER_T - .05))} с</strong><span>${fix(d)}</span>`;
+    }
+    if (html === alarmKey) return;
+    alarmKey = html;
+    if (html) alarmEl.innerHTML = html;
+    alarmEl.classList.toggle('is-on', !!html);
+    placeAll();
+  };
+
+  // шаги обучения: плашка у центра, призрачная линия показывает жест
+  const svgShape = (s, cls = '') => {
+    const P = {
+      sq: '<rect x="-6.5" y="-6.5" width="13" height="13"/>',
+      tr: '<path d="M0-8 7.6 5.6H-7.6Z"/>',
+      di: '<path d="M0-8.5 8.5 0 0 8.5-8.5 0Z"/>',
+      cr: '<path d="M-3-8h6v5h5v6h-5v5h-6v-5h-5v-6h5Z"/>',
+      ok: '<circle r="8.5"/><path class="k" d="M-3.6.2-1 2.8 3.8-2.4"/>',
+    };
+    return `<svg class="fl-g ${cls}" viewBox="-10 -10 20 20" aria-hidden="true">${P[s]}</svg>`;
+  };
+  let coachKey = '';
+  const coach = () => {
+    let v = null;
+    if (tut && state === 'run') {
+      const [a] = by('agent'), [d] = by('dept'), [s] = by('src');
+      const miss = !linkOf(d, a) ? [d, a] : !linkOf(a, s) ? [a, s] : null;
+      const named = m => m[0] === d ? 'Поддержка → AI‑агент' : 'AI‑агент → База знаний';
+      if (tut === 1) v = { t: 'Поддержка → AI‑агент', s: coarse ? 'Проведите пальцем от белого круга к чёрному' : 'Протяните мышью от белого круга к чёрному', g: [d, a] };
+      else if (tut === 2) v = { t: 'AI‑агент → База знаний', s: 'Теперь линия к данным: там агент возьмёт ответы', g: [a, s] };
+      else if (miss && tut === 4 && cutOnce) v = { t: 'Линия вернулась в запас', s: `Свободных: ${free}. Проведите её снова: ${named(miss)}`, g: miss, hl: linksEl };
+      else if (miss) v = { t: 'Верните линию', s: named(miss), g: miss };
+      else if (tut === 3) v = { t: 'Фигура = нужные данные', s: `${svgShape('sq')} – запрос в Базу знаний, ${svgShape('ok', 'is-ok')} – готовый ответ`, b: 'Понятно' };
+      else if (tut === 4) v = { t: 'Линии ограничены – счётчик вверху', s: `${TAP} по линии, она вернётся в запас`, hl: linksEl };
+      else v = { t: 'Продержитесь до конца таймера', s: 'Очередь больше 5 краснеет, 8 с красной – проигрыш', b: 'Начать неделю 1', hl: goalEl };
+      v.n = tut;
+    }
+    ghost = v ? v.g || null : ghost;
+    linksEl.classList.toggle('is-hl', v?.hl === linksEl);
+    goalEl.classList.toggle('is-hl', v?.hl === goalEl);
+    skipBtn.hidden = !v;
+    const key = v ? [v.n, v.t, v.s, v.b].join('|') : '';
+    if (key === coachKey) return;
+    const step = v && coachKey.split('|')[0] !== String(v.n);
+    coachKey = key;
+    // новый шаг – старые подсказки и ошибки больше не к месту
+    if (step) { tipLock = 0; tip(''); }
+    if (v) coachEl.innerHTML = `<strong>${v.t}</strong><div class="fl-crow${v.b ? ' has-btn' : ''}">${v.s ? `<span>${v.s}</span>` : ''}${v.b ? `<button type="button" data-act="next">${v.b}</button>` : ''}</div>`;
+    if (step) { coachEl.classList.remove('is-pop'); void coachEl.offsetWidth; coachEl.classList.add('is-pop'); }
+    coachEl.classList.toggle('is-on', !!v);
+    paintHud();
+    if (tut) { layout(false); links.forEach(curve); }
+    placeAll();
+  };
+  const tutStep = () => {
+    if (!tut) return;
+    const [a] = by('agent'), [d] = by('dept'), [s] = by('src');
+    const both = linkOf(d, a) && linkOf(a, s);
+    if (tut <= 2) tut = !linkOf(d, a) ? 1 : !linkOf(a, s) ? 2 : 3;
+    else if (tut === 4 && cutOnce && both) tut = 5;
+    coach();
+  };
+
+  // ---------- hints ----------
+  // ghost – пунктир, который сам тянется от узла к узлу и показывает, что сделать
+  let ghost = null;
   const hints = () => {
+    if (tut) return coach();
     ghost = null;
     const ags = by('agent');
     const age = n => clock - n.born;
-    for (const d of by('dept')) if (!links.some(l => l.n === d) && (age(d) > 2.5 || tut)) {
-      ghost = [d, nearAgent(d)];
-      return tip(`Протяните линию от ${DEPT[d.key].gen} к AI\u2011агенту`);
-    }
-    // отделу нужны данные, до которых его агенты не достают
+    const lighter = () => ags.slice().sort((a, b) => links.filter(l => l.ag === a && l.n.kind === 'dept').length - links.filter(l => l.ag === b && l.n.kind === 'dept').length)[0];
     for (const d of by('dept')) {
-      const mine = links.filter(l => l.n === d).map(l => l.ag);
-      const s = d.q.map(r => src(r.s)).find(s => s && !mine.some(a => linkOf(a, s)));
-      if (!s) continue;
-      if (!links.some(l => l.n === s)) { ghost = [mine[0] || ags[0], s]; return tip(`Протяните линию от AI\u2011агента к ${SRC[s.key].dat}`); }
-      if (age(s) > 2) return tip(`Свяжите ${DEPT[d.key].acc} и ${SRC[s.key].acc} через одного агента`);
+      const k = diag(d), s = srcOf(d), D = DEPT[d.key].name, S = SRC[s.key].name;
+      if (k === 'off' && (age(d) > 2.5 || d.q.length > 2)) {
+        ghost = [d, ags.find(a => linkOf(a, s)) || lighter()];
+        return tip(`Проведите линию: ${D} → AI‑агент`);
+      }
+      if (k === 'data' && age(s) > 1.5) {
+        const mine = agentsOf(d), has = ags.find(a => linkOf(a, s));
+        if (free > 0 || !has) { ghost = [mine[0], s]; return tip(`Проведите линию: AI‑агент → ${S}`); }
+        ghost = [d, has];
+        return tip(`Соедините ${D} и ${S} через одного агента`);
+      }
     }
-    for (const s of by('src')) if (!links.some(l => l.n === s) && (age(s) > 3 || tut)) {
-      ghost = [nearAgent(s), s];
-      return tip(`Протяните линию от AI\u2011агента к ${SRC[s.key].dat}`);
+    for (const a of ags) if (!links.some(l => l.ag === a) && age(a) > 1) {
+      ghost = [a, by('dept').sort((p, q) => q.q.length - p.q.length)[0]];
+      return tip('Подключите второго агента: линия к отделу и линия к его данным');
     }
-    for (const a of ags) if (!links.some(l => l.ag === a) && age(a) > 1) { ghost = [a, by('dept')[0]]; return tip('Подключите второго агента к отделу и данным'); }
-    if (by('dept').some(d => d.red)) return tip('Агент не успевает – очередь растёт', true);
     tip('');
-  };
-  const tutCheck = () => {
-    if (!tut) return;
-    const a = by('agent')[0], d = by('dept')[0], s = by('src')[0];
-    if (linkOf(a, d) && linkOf(a, s)) {
-      tut = 0; hintT = 0;
-      tip('Запросы пошли. Где очередь краснеет – там узко', false, 3.5);
-      return;
-    }
-    hints();
   };
 
   // ---------- actions ----------
   const flash = el => { el.classList.remove('is-shake'); void el.offsetWidth; el.classList.add('is-shake'); };
+  linksEl.addEventListener('animationend', e => { if (e.target === linksEl && e.animationName !== 'fl-glow') linksEl.classList.remove('is-shake', 'is-add'); });
+  // счётчик линий подпрыгивает и показывает, сколько добавилось
+  const bump = n => {
+    if (!n) return;
+    linksEl.dataset.add = `+${n}`;
+    linksEl.classList.remove('is-add'); void linksEl.offsetWidth; linksEl.classList.add('is-add');
+  };
   const connect = (a, b) => {
     if (!canPair(a, b)) {
       SFX.no();
-      return tip(a.kind === 'agent' ? 'Агенты между собой не соединяются' : 'Отделы и данные соединяются через AI\u2011агента', true, 2.6);
+      return tip(a.kind === 'agent' ? 'Агенты между собой не соединяются' : 'Отделы и данные соединяются через AI‑агента', true, 2.6);
     }
     if (linkOf(a, b)) return;
     if (free <= 0) {
       SFX.no(); flash(linksEl);
-      return tip('Линии закончились. Тапните по лишней линии, чтобы убрать её', true, 3);
+      return tip(`Свободных линий нет. ${TAP} по ненужной линии – она вернётся в запас`, true, 3.2);
     }
-    const ag = a.kind === 'agent' ? a : b, l = { ag, n: ag === a ? b : a, born: clock };
-    curve(l);
-    links.push(l);
+    link(a, b);
     free--;
-    SFX.link(); paintHud(); tutCheck();
+    SFX.link(); paintHud(); hintT = 0; tutStep();
   };
   const cut = l => {
     links.splice(links.indexOf(l), 1);
@@ -402,7 +623,9 @@
       if (p.kind === 'answer') arrive(p); else requeue(p.r, true);
     }
     free++;
-    SFX.cut(); paintHud(); hintT = 0;
+    bump(1);
+    if (tut === 4) cutOnce = true;
+    SFX.cut(); paintHud(); hintT = 0; tutStep();
   };
 
   // ---------- input ----------
@@ -567,7 +790,7 @@
     shape(n.x, n.y, R * s, SRC[n.key].shape); ctx.fill(); ctx.stroke();
     if (s < .6) return;
     if (tight) text(SRC[n.key].name, n.x - R - 8, n.y, 'right');
-    else if (land) text(SRC[n.key].name, n.x, n.y + R + 15);
+    else if (flat) text(SRC[n.key].name, n.x, n.y + R + 15);
     else text(SRC[n.key].name, n.x, n.y - R - 13);
   };
   const drawAgent = (n, i, all) => {
@@ -590,7 +813,7 @@
     ctx.stroke();
     if (s < .6) return;
     const name = all.length > 1 ? `AI-агент ${i + 1}` : 'AI-агент';
-    if (land) text(name, n.x, n.y + r + (tight ? 16 : 22), 'center', C.muted, tight ? 11 : FS);
+    if (flat) text(name, n.x, n.y + r + (tight ? 16 : 22), 'center', C.muted, tight ? 11 : FS);
     else text(name, n.x + r + 12, n.y, 'left', C.muted);
   };
   const drawDept = n => {
@@ -605,9 +828,13 @@
     }
     ctx.fillStyle = C.paper; ctx.strokeStyle = hot ? RED : C.ink; ctx.lineWidth = 4.2;
     ctx.beginPath(); ctx.arc(n.x, n.y, r, 0, TAU); ctx.fill(); ctx.stroke();
+    // внутри отдела – фигура его данных: видно, куда ему нужна линия
+    ctx.globalAlpha = .3; ctx.fillStyle = C.ink;
+    shape(n.x, n.y, r * .4, SRC[DEPT[n.key].src].shape); ctx.fill();
+    ctx.globalAlpha = 1;
     if (s < .6) return;
     if (tight) text(DEPT[n.key].name, n.x + r + 45, n.y, 'left');
-    else text(DEPT[n.key].name, n.x, n.y + r + (land ? 15 : 14));
+    else text(DEPT[n.key].name, n.x, n.y + r + (flat ? 15 : 14));
     // очередь: сетка 3 x 4 справа от отдела, лишнее – числом над ней
     const q = n.q, gx = n.x + r + (n.over > 0 ? 15 : 9), gy = n.y - 13.5;
     for (let i = 0; i < Math.min(q.length, 12); i++) {
@@ -636,11 +863,11 @@
     const ok = !b || (canPair(a, b) && free > 0);
     const x = b ? b.x : drag.x, y = b ? b.y : drag.y;
     ctx.setLineDash([6, 6]); ctx.lineWidth = 3; ctx.lineCap = 'round';
-    ctx.strokeStyle = ok ? C.ink : RED; ctx.globalAlpha = .7;
+    ctx.strokeStyle = ok && free > 0 ? C.ink : RED; ctx.globalAlpha = .7;
     ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(x, y); ctx.stroke();
     ctx.setLineDash([]); ctx.globalAlpha = 1;
     if (b) ring(b, (b.kind === 'agent' ? RA : R) + 9, .9, ok ? C.ink : RED, 2.5);
-    else { ctx.fillStyle = C.ink; ctx.beginPath(); ctx.arc(x, y, 5, 0, TAU); ctx.fill(); }
+    else { ctx.fillStyle = free > 0 ? C.ink : RED; ctx.beginPath(); ctx.arc(x, y, 5, 0, TAU); ctx.fill(); }
   };
 
   const draw = () => {
@@ -669,39 +896,113 @@
     const m10 = n % 10, m100 = n % 100;
     return m10 === 1 && m100 !== 11 ? one : m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14) ? few : many;
   };
-  const REQ = ['запрос', 'запроса', 'запросов'];
+  const REQ = ['запрос', 'запроса', 'запросов'], LINES = ['линия', 'линии', 'линий'];
   const paintHud = () => {
-    weekEl.textContent = `Неделя ${week + 1} из ${WEEKS.length} · ${WEEKS[week].name}`;
-    linksEl.querySelector('b').textContent = String(free);
+    wnumEl.textContent = tut ? 'Обучение' : `Неделя ${week + 1} из ${WEEKS.length}`;
+    wnameEl.textContent = tut ? `Шаг ${tut} из ${TUT_N}` : wname(WEEKS[week]);
+    linksN.textContent = String(free);
     linksEl.classList.toggle('is-zero', free <= 0);
-    rubEl.querySelector('b').textContent = String(answered);
-    paintBar();
+    if (free > 0 && tipText.startsWith('Свободных линий нет')) { tipLock = 0; tip(''); }
+    const hide = tut > 0 && tut < TUT_N;
+    if (goalEl.hidden !== hide) { goalEl.hidden = hide; if (tut) layout(false); placeAll(); }
+    paintGoal();
   };
-  const paintBar = () => barEl.style.setProperty('--p', Math.min(1, weekT / WEEKS[week].dur).toFixed(3));
+  // таймер недели: сколько ещё продержаться
+  let lastSec = -1;
+  const paintGoal = () => {
+    const dur = WEEKS[week].dur, left = tut ? dur : Math.max(0, Math.ceil(dur - weekT - .001));
+    barEl.style.setProperty('--p', tut ? '0' : Math.min(1, weekT / dur).toFixed(3));
+    if (left === lastSec) return;
+    lastSec = left;
+    timeEl.textContent = `${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}`;
+    const end = !tut && left <= 5;
+    goalEl.classList.toggle('is-end', end);
+    if (end) { goalEl.classList.remove('is-tick'); void goalEl.offsetWidth; goalEl.classList.add('is-tick'); }
+  };
 
   let bannerT = 0;
   const showBanner = (small, big, line) => {
     banner.innerHTML = `<small>${small}</small><strong>${big}</strong>${line ? `<span>${line}</span>` : ''}`;
     banner.classList.add('is-on');
+    placeAll();
     clearTimeout(bannerT);
-    bannerT = setTimeout(() => banner.classList.remove('is-on'), 2200);
+    bannerT = setTimeout(() => banner.classList.remove('is-on'), 2900);
+  };
+  const quiet = () => {
+    tipLock = 0; tip('');
+    alarmKey = ''; alarmEl.classList.remove('is-on');
+    clearTimeout(bannerT); banner.classList.remove('is-on');
   };
 
   const panel = (html, focus) => {
     screen.innerHTML = `<div class="fl-panel">${html}</div>`;
     screen.hidden = false;
     hud.hidden = state === 'intro';
-    tipLock = 0; tip('');
+    if (state !== 'pause') { quiet(); coach(); }
     if (focus) screen.querySelector('button')?.focus({ preventScroll: true });
   };
 
-  const intro = () => panel(`
+  // ---------- checkpoint ----------
+  // начало недели (после выбора усиления) сохраняется целиком: узлы, линии, очереди, усиления, счёт
+  // копия в памяти – на случай, когда localStorage недоступен
+  const save = () => {
+    mem = JSON.stringify({
+      v: 2, week, free, cap, cacheOn, used, answered, spawned, redT, maxQ,
+      nodes: nodes.map(n => [n.kind, n.key, n.q.length]),
+      links: links.map(l => [nodes.indexOf(l.ag), nodes.indexOf(l.n)]),
+    });
+    store.set(SAVE, mem);
+  };
+  const num = v => typeof v === 'number' && isFinite(v) && v >= 0;
+  // чужое или битое сохранение не должно ломать игру: проверяем всё, что потом читаем
+  const valid = s => {
+    if (!s || s.v !== 2 || !Number.isInteger(s.week) || !WEEKS[s.week]) return false;
+    if (!['free', 'answered', 'spawned', 'redT', 'maxQ'].every(k => num(s[k])) || !Number.isInteger(s.free) || s.free > 20) return false;
+    if (!Number.isInteger(s.cap) || s.cap < CAP || s.cap > CAP + 4 || typeof s.cacheOn !== 'boolean') return false;
+    if (!s.used || typeof s.used !== 'object' || Array.isArray(s.used) || !Object.entries(s.used).every(([k, v]) => UPS[k] && Number.isInteger(v) && v >= 0 && v <= UPS[k].max)) return false;
+    if (!Array.isArray(s.nodes) || !Array.isArray(s.links)) return false;
+    const have = new Set();
+    for (const n of s.nodes) {
+      if (!Array.isArray(n)) return false;
+      const [k, key, q = 0] = n;
+      const ok = k === 'agent' ? key === 'a1' || key === 'a2' : k === 'dept' ? DEPT[key] : k === 'src' && SRC[key];
+      if (!ok || !num(q) || have.has(`${k}:${key}`)) return false;
+      have.add(`${k}:${key}`);
+    }
+    const need = ['sup', ...WEEKS.slice(0, s.week + 1).filter(w => w.dept).map(w => w.dept)];
+    if (!have.has('agent:a1') || !need.every(d => have.has(`dept:${d}`) && have.has(`src:${DEPT[d].src}`))) return false;
+    return s.links.every(l => Array.isArray(l) && s.nodes[l[0]] && s.nodes[l[1]] && (s.nodes[l[0]][0] === 'agent') !== (s.nodes[l[1]][0] === 'agent'));
+  };
+  const load = () => {
+    for (const raw of [mem, store.get(SAVE)]) {
+      try { const s = JSON.parse(raw); if (valid(s)) return s; } catch {}
+    }
+    return null;
+  };
+  const drop = () => { mem = null; store.set(SAVE, null); };
+
+  const RULES = `<ul class="fl-rules">
+      <li><svg viewBox="0 0 72 24" aria-hidden="true"><path class="s" d="M13 12h12M41 12h13"/><circle class="o" cx="7" cy="12" r="5.5"/><circle class="f" cx="33" cy="12" r="8"/><path class="w" d="M29 12h8M33 8v8M30.2 9.2l5.6 5.6M35.8 9.2l-5.6 5.6"/><rect class="o" x="57" y="6" width="12" height="12"/></svg>
+        <span>Проведите линии: <b>отдел → AI‑агент → данные</b></span></li>
+      <li><svg viewBox="0 0 72 24" aria-hidden="true"><circle class="rr" cx="11" cy="12" r="10"/><path class="ra" d="M11 2a10 10 0 0 1 9.5 13"/><circle class="ro" cx="11" cy="12" r="6"/><g class="rf"><rect x="26" y="4" width="6" height="6"/><rect x="35" y="4" width="6" height="6"/><rect x="44" y="4" width="6" height="6"/><rect x="26" y="14" width="6" height="6"/><rect x="35" y="14" width="6" height="6"/><rect x="44" y="14" width="6" height="6"/></g></svg>
+        <span>Очередь больше 5 краснеет. <b>8&nbsp;секунд красной – проигрыш</b></span></li>
+      <li><svg viewBox="0 0 72 24" aria-hidden="true"><rect class="o t" x="2" y="2" width="68" height="20" rx="10"/><text x="36" y="16.6" text-anchor="middle">0:20</text></svg>
+        <span>Продержитесь до конца таймера. <b>4&nbsp;недели – победа</b></span></li>
+    </ul>`;
+  const intro = () => {
+    const cp = load();
+    let btns;
+    if (cp && cp.week > 0) btns = `<button type="button" class="btn btn-blue" data-act="cont">Продолжить: неделя ${cp.week + 1}</button><button type="button" class="btn btn-line" data-act="fresh">Сначала</button>`;
+    else if (tutDone) btns = `<button type="button" class="btn btn-blue" data-act="fresh">Играть</button>`;
+    else btns = `<button type="button" class="btn btn-blue" data-act="learn">Играть с обучением</button><button type="button" class="btn btn-line" data-act="fresh">Без обучения</button>`;
+    panel(`
     <p class="fl-kicker">4 недели · 2 минуты</p>
-    <h3>Соберите AI\u2011систему</h3>
-    <p class="fl-sub">Отделы шлют запросы, AI\u2011агент отвечает по данным компании. Проведите линии от отделов к агенту и от агента к данным.</p>
-    <ul class="fl-keys"><li><kbd>${coarse ? 'Проведите пальцем' : 'Тяните мышью'}</kbd> от узла к узлу – линия</li><li><kbd>${coarse ? 'Тап' : 'Клик'}</kbd> по линии – убрать</li></ul>
-    <div class="fl-btns"><button type="button" class="btn btn-blue" data-act="play">Играть</button></div>
+    <h3>Соберите AI‑систему</h3>
+    ${RULES}
+    <div class="fl-btns">${btns}</div>
+    ${tutDone ? '<button type="button" class="fl-more" data-act="learn">Пройти обучение</button>' : ''}
     ${best ? `<p class="fl-best">Ваш рекорд: ${best} ${plural(best, REQ)}</p>` : ''}`);
+  };
 
   // демо под заставкой: вся схема уже собрана и работает
   const demoSet = () => {
@@ -709,100 +1010,168 @@
     nodes = []; links = []; dots = []; ghosts = []; cap = 4; cacheOn = false; tut = 0; clock = 10;
     const a1 = add('agent', 'a1'), a2 = add('agent', 'a2');
     const n = {};
-    WEEKS.forEach(w => { n[w.dept] = add('dept', w.dept); n[w.src] = add('src', w.src); });
-    [[a1, 'sup'], [a1, 'sal'], [a1, 'kb'], [a1, 'crm'], [a2, 'fin'], [a2, 'law'], [a2, 'erp'], [a2, 'doc'], [a2, 'kb'], [a2, 'crm']]
+    for (const k in DEPT) { n[k] = add('dept', k); n[DEPT[k].src] = add('src', DEPT[k].src); }
+    [[a1, 'sup'], [a1, 'sal'], [a1, 'kb'], [a1, 'crm'], [a2, 'fin'], [a2, 'law'], [a2, 'erp'], [a2, 'doc'], [a2, 'sal'], [a1, 'fin'], [a2, 'crm'], [a1, 'erp']]
       .forEach(([ag, k]) => links.push({ ag, n: n[k], born: -1 }));
     nodes.forEach(n => { n.born = -1; n.spawnT = Math.random() * 2; });
     layout(true);
     links.forEach(curve);
   };
 
-  const play = () => {
+  const reset = () => {
     demo = false; state = 'run';
-    nodes = []; links = []; dots = []; ghosts = []; sel = null; drag = null; tap = null;
-    week = 0; weekT = 0; tut = 1; free = 2; cap = CAP; cacheOn = false;
-    answered = 0; spawned = 0; redT = 0; maxQ = 0; clock = 0; used = {}; warned = 0; hintT = 0; tipLock = 0;
-    add('agent', 'a1');
-    addWeek(0);
+    nodes = []; links = []; dots = []; ghosts = []; sel = null; drag = null; tap = null; ghost = null;
+    week = 0; weekT = 0; tut = 0; cutOnce = false; free = 0; cap = CAP; cacheOn = false; lastSec = -1; grace = 0; util = 0;
+    answered = 0; spawned = 0; redT = 0; maxQ = 0; clock = 0; used = {}; warned = 0; hintT = 0;
+    quiet();
+  };
+  // игра целиком в кадре и не под шапкой сайта
+  const enter = () => {
     screen.hidden = true; hud.hidden = false;
     audio();
     root.focus({ preventScroll: true });
-    // игра целиком в кадре и не под шапкой сайта
     const r = root.getBoundingClientRect(), bar = document.querySelector('.topbar')?.getBoundingClientRect().bottom || 0;
     if (r.top < bar + 4 || r.bottom > innerHeight) scrollBy({ top: r.top - bar - Math.max(8, (innerHeight - bar - r.height) / 2), behavior: still ? 'auto' : 'smooth' });
-    tutCheck();
     kick();
   };
-  const addWeek = i => {
+  // старт: с обучением – пустая схема поддержки; без него – пилот в поддержке уже работает, сразу неделя 1
+  const play = withTut => {
+    reset();
+    tutDone = true; store.set(TUTK, '1');
+    const a = add('agent', 'a1'), d = add('dept', 'sup'), s = add('src', 'kb');
+    layout(true);
+    enter();
+    if (withTut) { tut = 1; free = 2; paintHud(); hints(); return; }
+    link(a, d); link(a, s);
+    startWeek(0);
+  };
+  const finishTut = () => {
+    if (!tut) return;
+    tut = 0; cutOnce = false; sel = null;
+    // ответы обучения в счёт и рекорд не идут
+    answered = 0; spawned = 0;
+    // пропуск посреди обучения: недостающие линии поддержки дорисуем сами
+    const [a] = by('agent'), [d] = by('dept'), [s] = by('src');
+    if (!linkOf(d, a)) link(a, d);
+    if (!linkOf(a, s)) link(a, s);
+    free = 0;
+    d.q.length = Math.min(d.q.length, 2);
+    coach();
+    startWeek(0);
+  };
+  const startWeek = (i, extra = 0) => {
     const w = WEEKS[i];
-    week = i; weekT = 0;
-    add('dept', w.dept); add('src', w.src);
-    if (i) { free += 2; SFX.week(); }
+    week = i; weekT = 0; lastSec = -1;
+    if (w.dept) { add('dept', w.dept); add('src', w.src); }
+    free += w.lines + extra;
+    // новая неделя начинается с чистого листа: без красного таймера и с короткой очередью,
+    // иначе проигрыш переезжал бы в следующую неделю и в чекпойнт
+    for (const d of by('dept')) { d.over = 0; d.red = false; d.q.length = Math.min(d.q.length, QMAX - 2); }
+    grace = 2.5;
     layout(false);
     links.forEach(curve);
+    save();
+    announce(w.lines + extra);
+    if (i) SFX.week();
+  };
+  const announce = more => {
+    const w = WEEKS[week];
     paintHud();
-    showBanner(`Неделя ${i + 1} из ${WEEKS.length}`, w.title, w.text);
+    bump(more);
+    const line = more ? `${w.what} · +${more} ${plural(more, LINES)}` : w.dept ? `${w.what} · линий в запасе: ${free}` : w.what;
+    showBanner(`Неделя ${week + 1} из ${WEEKS.length} · продержитесь ${w.dur} с`, w.dept ? `${DEPT[w.dept].name} и ${SRC[w.src].name}` : w.name, line);
     hintT = 0;
   };
+  const restore = s => {
+    reset();
+    ({ week, free, cap, cacheOn, answered, spawned, redT, maxQ } = s);
+    used = { ...s.used };
+    for (const [kind, key, q = 0] of s.nodes) {
+      const n = add(kind, key);
+      if (kind === 'dept') n.q = Array.from({ length: Math.min(q, QMAX - 2) }, () => ({ s: DEPT[key].src, d: n, ag: null }));
+    }
+    grace = 2.5;
+    layout(true);
+    for (const [i, j] of s.links) if (nodes[i] && nodes[j] && canPair(nodes[i], nodes[j]) && !linkOf(nodes[i], nodes[j])) link(nodes[i], nodes[j]);
+    enter();
+    announce(0);
+  };
+  const retry = () => {
+    const s = load();
+    if (s) try { restore(s); return; } catch {}
+    drop();
+    play(false);
+  };
+
   const endWeek = () => {
     if (week === WEEKS.length - 1) return win();
     state = 'pick'; cancel(); sel = null;
-    const pool = Object.keys(UPS).filter(k => (used[k] || 0) < UPS[k].max);
-    const two = pool.sort(() => Math.random() - .5).slice(0, 2);
-    const next = WEEKS[week + 1];
+    weekT = WEEKS[week].dur; paintGoal();
+    // второй агент предлагается, пока его не взяли; второй вариант – случайный из остальных
+    const pool = Object.keys(UPS).filter(k => k !== 'agent' && (used[k] || 0) < UPS[k].max && (!UPS[k].need || UPS[k].need())).sort(() => Math.random() - .5);
+    const two = (used.agent ? pool.slice(0, 2) : ['agent', pool[0]]).filter(Boolean);
+    const next = WEEKS[week + 1], ags = by('agent').length;
+    const ratio = demand(week + 1) / demand(week), load_ = Math.round(Math.min(1, util) * 100);
     SFX.week();
     panel(`
-      <p class="fl-kicker">Неделя ${week + 1} пройдена · ${answered} ${plural(answered, REQ)}</p>
+      <p class="fl-kicker">Неделя ${week + 1} из ${WEEKS.length} пройдена · ${answered} ${plural(answered, REQ)}</p>
       <h3>Чем усилить систему?</h3>
-      <p>Дальше: ${/^[А-ЯЁ][а-яё]/.test(next.title) ? next.title[0].toLowerCase() + next.title.slice(1) : next.title}. Запросов станет больше.</p>
-      <div class="fl-picks">${two.map(k => `<button type="button" data-up="${k}"><b>${UPS[k].name}</b><span>${UPS[k].text}</span></button>`).join('')}</div>`, true);
+      <p>Неделя ${week + 2}: ${next.dept ? `новый отдел ${DEPT[next.dept].name} и ${SRC[next.src].name}` : 'вся компания, пик нагрузки'}.</p>
+      <p class="fl-load">Дальше запросов в&nbsp;${ratio.toFixed(1).replace('.', ',')} раза больше, а&nbsp;${ags > 1 ? 'агенты загружены' : 'агент загружен'} уже на&nbsp;${load_}%</p>
+      <div class="fl-picks">${two.map(k => `<button type="button" data-up="${k}"><b>${UPS[k].name}</b><span>${UPS[k].text()}</span></button>`).join('')}</div>`, true);
   };
+  // сколько запросов в секунду в среднем за неделю i: отделов к ней × база недели × середина разгона
+  const demand = i => (1 + WEEKS.slice(0, i + 1).filter(w => w.dept).length) * BASE[i] * (1 + RAMP / 2);
   const upgrade = k => {
+    if (state !== 'pick') return;
     used[k] = (used[k] || 0) + 1;
-    if (k === 'gpu') cap += 2;
+    if (k === 'gpu') cap += GPU;
     else if (k === 'cache') cacheOn = true;
-    else if (k === 'links') free += 3;
-    else if (k === 'agent') { const a = add('agent', 'a2'); a.born = clock + .3; free += 3; }
+    else if (k === 'agent') { const a = add('agent', 'a2'); a.born = clock + .3; }
     state = 'run'; screen.hidden = true;
-    addWeek(week + 1);
+    startWeek(week + 1, UPS[k].lines || 0);
     root.focus({ preventScroll: true });
     kick();
   };
 
   // ранг: без красных очередей решает самая длинная очередь за игру
   const rank = () => redT < .5 ? (maxQ <= 3 ? 'Head of AI' : 'AI Transformation Lead') : redT < 8 ? 'Крепкий delivery' : 'Дошли до прода на характере';
-  const stats = () => `Ответили на <strong>${answered} ${plural(answered, REQ)}</strong>, это <strong>${answered}&nbsp;млн&nbsp;₽</strong> эффекта в год.`;
+  const stats = money => `Ответили на <strong>${answered} ${plural(answered, REQ)}</strong>${money ? `, это <strong>${answered}&nbsp;млн&nbsp;₽</strong> эффекта в год` : ''}.`;
   const record = () => {
     const rec = answered > best;
-    if (rec) { best = answered; try { localStorage.setItem('mm-flow-best', String(best)); } catch {} }
+    if (rec) { best = answered; store.set('mm-flow-best', String(best)); }
     return rec;
   };
   const lose = d => {
     state = 'over'; cancel(); sel = null;
     SFX.lose();
-    const blocked = d.q.filter(r => !links.some(l => l.n === d && linkOf(l.ag, src(r.s)))).length;
-    const [why, advice] = !links.some(l => l.n === d) ? WHY.off : blocked > d.q.length / 2 ? WHY.data : WHY.load;
+    const [why, advice] = WHY[diag(d)];
     record();
     panel(`
       <p class="fl-kicker">Проект закрыт на неделе ${week + 1} из ${WEEKS.length}</p>
-      <h3 class="is-lost">${DEPT[d.key].fail}</h3>
+      <h3 class="is-lost">${glue(DEPT[d.key].fail)}</h3>
       <p>${why} ${stats()}</p>
       <p><strong>Совет Майка:</strong> ${advice}</p>
-      <div class="fl-btns"><button type="button" class="btn btn-blue" data-act="play">Ещё раз</button></div>`, true);
+      <div class="fl-btns">
+        <button type="button" class="btn btn-blue" data-act="retry">Переиграть неделю ${week + 1}</button>
+        ${week ? '<button type="button" class="btn btn-line" data-act="fresh">Сначала</button>' : '<button type="button" class="btn btn-line" data-act="learn">Пройти обучение</button>'}
+      </div>`, true);
     draw();
   };
   const win = () => {
     state = 'win'; cancel(); sel = null;
     SFX.win();
+    weekT = WEEKS[week].dur; paintGoal();
+    drop();
     const rec = record(), title = rank();
     const msg = `Собрал AI-систему в игре на вашем сайте: ${answered} ${plural(answered, REQ)}, ранг ${title}. Хочу обсудить реальный проект.`;
     panel(`
       <p class="fl-kicker">AI работает во всей компании</p>
       <h3>${title}</h3>
-      <p>${stats()} Самая длинная очередь – ${maxQ}${redT >= .5 ? `, красные очереди – ${Math.round(redT)}&nbsp;с` : ''}.${rec ? ' Это ваш рекорд.' : ` Рекорд: ${best}.`}</p>
+      <p>${stats(true)} Самая длинная очередь – ${maxQ}${redT >= .5 ? `, красные очереди – ${Math.round(redT)}&nbsp;с` : ''}.${rec ? ' Это ваш рекорд.' : ` Рекорд: ${best}.`}</p>
       <p class="fl-note">Так я и проектирую AI-платформы: сначала данные, доступы и нагрузка, потом модель.</p>
       <div class="fl-btns">
-        <button type="button" class="btn btn-blue" data-act="play">Ещё раз</button>
+        <button type="button" class="btn btn-blue" data-act="fresh">Ещё раз</button>
         <a class="btn btn-line" href="${TG}?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener">Обсудить ваш проект</a>
       </div>`, true);
     draw();
@@ -813,17 +1182,28 @@
     panel(`
       <p class="fl-kicker">Пауза</p>
       <h3>Система ждёт</h3>
-      <p>Неделя ${week + 1} из ${WEEKS.length}, ответили на ${answered} ${plural(answered, REQ)}.</p>
+      <p>${tut ? `Обучение, шаг ${tut} из ${TUT_N}.` : `Неделя ${week + 1} из ${WEEKS.length}, осталось ${timeEl.textContent}. Ответили на ${answered} ${plural(answered, REQ)}.`}</p>
       <div class="fl-btns"><button type="button" class="btn btn-blue" data-act="resume">Продолжить</button></div>`, true);
   };
-  const resume = () => { state = 'run'; screen.hidden = true; root.focus({ preventScroll: true }); kick(); };
+  const resume = () => { state = 'run'; screen.hidden = true; placeAll(); root.focus({ preventScroll: true }); kick(); };
 
+  const ACT = {
+    learn: () => play(true),
+    fresh: () => play(false),
+    cont: retry,
+    retry,
+    resume,
+    next: () => { if (state !== 'run') return; if (tut === 3) { tut = 4; coach(); } else if (tut === TUT_N) finishTut(); },
+    skip: () => { if (state === 'run') finishTut(); },
+  };
   screen.addEventListener('click', e => {
     const up_ = e.target.closest('[data-up]');
     if (up_) return upgrade(up_.dataset.up);
     const b = e.target.closest('[data-act]');
-    if (b) ({ play, resume })[b.dataset.act]?.();
+    if (b) ACT[b.dataset.act]?.();
   });
+  coachEl.addEventListener('click', e => { if (e.target.closest('[data-act="next"]')) ACT.next(); });
+  skipBtn.addEventListener('click', ACT.skip);
   pauseBtn.addEventListener('click', () => state === 'run' ? pause() : state === 'pause' && resume());
   addEventListener('keydown', e => {
     if ((e.code === 'Escape' || e.code === 'KeyP') && state === 'run' && root.contains(document.activeElement)) pause();
@@ -858,7 +1238,7 @@
   if ('ResizeObserver' in window) new ResizeObserver(resize).observe(cv); else addEventListener('resize', resize);
   demoSet();
   resize();
-  if (document.fonts) document.fonts.ready.then(() => draw());
+  if (document.fonts) document.fonts.ready.then(() => { draw(); placeAll(); });
   intro();
   kick();
 })();
