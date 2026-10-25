@@ -834,12 +834,17 @@ body { --cut: var(--paper); }
 .fl-more { display: inline-flex; align-items: center; min-height: 44px; margin-top: 2px; padding: 0 12px; border: 0; background: none; color: var(--muted); font: 600 14px/1 var(--text); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
 .fl-more:hover { color: var(--ink); }
 .fl-picks { display: grid; gap: 8px; margin-top: 16px; }
-.fl-picks button { display: grid; gap: 4px; padding: 14px 16px; border: 0; border-radius: 16px; background: var(--card); box-shadow: inset 0 0 0 1.5px var(--line); color: var(--ink); font: inherit; text-align: left; cursor: pointer; transition: box-shadow .15s, background-color .15s, color .15s; }
-.fl-picks b { font: 700 17px/1.15 var(--display); letter-spacing: -.03em; }
-.fl-picks span { font-size: 14px; line-height: 1.35; color: var(--muted); }
+.fl-picks button { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 14px; padding: 14px 16px; border: 0; border-radius: 16px; background: var(--card); box-shadow: inset 0 0 0 1.5px var(--line); color: var(--ink); font: inherit; text-align: left; cursor: pointer; transition: box-shadow .15s, background-color .15s, color .15s; }
+.fl-picks b { grid-column: 1; font: 700 17px/1.15 var(--display); letter-spacing: -.03em; }
+.fl-picks span { grid-column: 1; font-size: 14px; line-height: 1.35; color: var(--muted); }
+/* прогноз нагрузки справа на карточке: крупная цифра, красная – если агенты не успеют */
+.fl-picks em { grid-column: 2; grid-row: 1 / span 2; align-self: center; display: grid; justify-items: end; gap: 2px; font-style: normal; font-size: 12px; font-weight: 600; line-height: 1; color: var(--muted); white-space: nowrap; }
+.fl-picks em i { font: 800 24px/1 var(--display); font-style: normal; letter-spacing: -.04em; color: var(--ink); font-variant-numeric: tabular-nums; }
+.fl-picks em.is-bad, .fl-picks em.is-bad i, .fl-panel .is-bad { color: var(--red); }
 .fl-picks button:focus-visible { outline: 3px solid var(--figure); outline-offset: 2px; }
 .fl-picks button:active { background: var(--ink); color: #fff; }
-.fl-picks button:active span { color: rgba(255,255,255,.72); }
+.fl-picks button:active span, .fl-picks button:active em { color: rgba(255,255,255,.72); }
+.fl-picks button:active em i { color: #fff; }
 @media (hover: hover) {
   .fl-picks button:hover { box-shadow: inset 0 0 0 1.5px var(--ink); }
 }
@@ -867,6 +872,9 @@ body { --cut: var(--paper); }
   .fl-btns { margin-top: 14px; }
   .fl-btns .btn { flex: 1 1 auto; justify-content: center; padding: 14px; font-size: 16px; }
   .fl-banner span { font-size: 13px; }
+  .fl-picks { margin-top: 12px; }
+  .fl-picks button { padding: 11px 14px; }
+  .fl-picks span { font-size: 13px; line-height: 1.3; }
 }
 /* телефон боком: игра во всю высоту под шапкой сайта */
 @media (orientation: landscape) and (max-height: 500px) {
@@ -880,6 +888,13 @@ body { --cut: var(--paper); }
   .fl-btns { margin-top: 10px; }
   .fl-btns .btn { padding: 12px 18px; }
   .fl-more { min-height: 36px; }
+  /* усиления боком – в ряд: по высоте три карточки не влезают */
+  .fl-panel:has(.fl-picks) { width: min(820px, 100%); }
+  .fl-picks { grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); margin-top: 10px; }
+  .fl-picks button { grid-template-columns: minmax(0, 1fr); align-content: start; padding: 10px 12px; }
+  .fl-picks em { grid-column: 1; grid-row: auto; display: flex; align-items: baseline; justify-content: flex-start; gap: 6px; margin-top: 2px; }
+  .fl-picks em i { font-size: 20px; }
+  .fl-picks span { font-size: 13px; line-height: 1.3; }
 }
 .fl.is-tight .fl-goal { gap: 4px; padding: 6px 14px 7px; }
 .fl.is-tight .fl-gtext { font-size: 14px; }

@@ -1,6 +1,7 @@
 // Игра "Соберите AI-систему": схема-поток в духе Mini Metro. Чёрные линии и узлы, красный – только для пробок.
 // Игрок тянет линии: отдел – AI-агент – данные. Запрос бежит точкой от отдела к агенту, агент сходит в данные и вернёт ответ.
 // Правила всегда на виду: таймер недели по центру сверху, счётчик линий со словом, красная очередь – крупное предупреждение.
+// Под каждым агентом – его нагрузка в процентах: за 100% очереди растут. При выборе усиления видно, какой будет нагрузка дальше.
 // Обучение – отдельная фаза до недели 1, его можно пропустить. Начало каждой недели – чекпойнт: проигрыш переигрывает только её.
 // Тексты и баланс – в SRC, DEPT, WEEKS, UPS, WHY и блоке balance.
 (() => {
@@ -46,40 +47,45 @@
     law: { name: 'Юристы', src: 'doc', quit: 'Юристы бросят AI', fail: 'Юристы вернулись к бумаге' },
   };
   // обучение идёт на поддержке и базе знаний, недели добавляют по отделу; dur – секунды, lines – новые линии
-  const TUT_N = 5;
+  const TUT_N = 6;
   const WEEKS = [
     { dept: 'sal', src: 'crm', dur: 20, lines: 2, what: 'Новый отдел' },
     { dept: 'fin', src: 'erp', dur: 22, lines: 2, what: 'Новый отдел · запросов больше' },
     { dept: 'law', src: 'doc', dur: 24, lines: 2, what: 'Новый отдел · запросов больше' },
-    { name: 'Вся компания', dur: 26, lines: 0, what: 'Пик нагрузки – просто продержитесь' },
+    { name: 'Вся компания', dur: 26, lines: 2, what: 'Пик нагрузки' },
   ];
   const wname = w => w.dept ? DEPT[w.dept].name : w.name;
   // предлог и последнее слово не остаются одни на строке: "к Excel", "ручным ответам"
   const glue = t => t.replace(/ (к|в|с|и|на|о|у) /g, ' $1 ').replace(/ (\S+)$/, ' $1');
   const GPU = 3, GPU_MAX = 1;   // сервер мощнее: +GPU к мощности каждого агента
+  // links – запасной вариант: предлагается, только когда усилений осталось меньше двух
   const UPS = {
-    agent: { name: 'Второй AI‑агент', max: 1, lines: 4, text: () => 'Свой поток запросов и +4 линии к нему. Разделите отделы между агентами' },
+    agent: { name: 'Второй AI‑агент', max: 1, lines: 2, text: () => 'Заберёт часть отделов. +2 линии, чтобы его подключить' },
     gpu: { name: 'Сервер мощнее', max: GPU_MAX, text: () => `${by('agent').length > 1 ? 'Каждый агент держит' : 'Агент держит'} ${cap + GPU} запросов разом вместо ${cap}` },
-    cache: { name: 'Кэш ответов', max: 1, text: () => '40% запросов агент отвечает сразу, без похода в данные' },
-    links: { name: '+3 линии', max: 1, lines: 3, need: () => by('agent').length > 1, text: () => 'Подключите отдел к обоим агентам – запросы пойдут к свободному' },
+    cache: { name: 'Кэш ответов', max: 1, text: () => '40% ответов без похода в данные – агент освобождается быстрее' },
+    links: { name: '+3 линии', max: 1, lines: 3, text: () => 'Подключите отделы к обоим агентам – запросы пойдут к свободному' },
   };
   // почему отдел сдался и что посоветовал бы Майк
   const WHY = {
     off: ['Отдел так и не подключили к AI‑агенту.', 'Пилот без пользователей не взлетает. Подключайте отдел с первого дня и спрашивайте, что ему мешает.'],
     data: ['Агент не видел нужных данных, ответов не было.', 'Сначала карта данных и доступы, потом модель. Агент без нужных данных – просто чат-бот.'],
-    load: ['Агент не успевал, очередь росла быстрее ответов.', 'Нагрузку на масштабе считайте до запуска. Мощность и второго агента закладывайте заранее, а частые ответы кэшируйте.'],
+    load: ['Нагрузка была выше 100%: запросов приходило больше, чем агенты успевали ответить.', 'Нагрузку на масштабе считайте до запуска. Мощность и второго агента закладывайте заранее, а частые ответы кэшируйте.'],
+    skew: ['Один агент тонул в запросах, а второй стоял с запасом.', 'Делите отделы между агентами по нагрузке, а не по оргструктуре.'],
   };
 
   // ---------- balance ----------
   const QMAX = 5;            // столько запросов отдел ждёт спокойно, дальше очередь краснеет
-  const OVER_T = 8;          // секунд красной очереди до проигрыша
-  const CAP = 3;             // запросов, которые агент держит одновременно
+  const OVER_T = 10;         // секунд красной очереди до проигрыша
+  const CAP = 4;             // запросов, которые агент держит одновременно
   const THINK = .35, THINK2 = .2;
   const CACHE = .4;
   const GAP = .22;           // пауза между запросами одного отдела на линии
-  const TRIP = .8;           // секунд на пролёт между колонками
-  // запросов в секунду от одного отдела: своя база у каждой недели, к концу недели растёт
-  const BASE = [.55, .5, .71, .94], RAMP = .5;
+  const TRIP = .7;           // секунд на любой пролёт по линии: так мощность агента не зависит от длины линий
+  // агент держит запрос от выхода из отдела до готового ответа: пролёт к агенту, мысль, данные туда и обратно, мысль
+  const hold = (c = cacheOn) => TRIP * 3 + THINK + THINK2 - (c ? CACHE * TRIP * 2 : 0);
+  // запросов в секунду от одного отдела: своя база у каждой недели, к концу недели растёт.
+  // Пик недели при верных линиях и толковых усилениях – 65–95% мощности, неверный выбор виден в прогнозе как 104–150%
+  const BASE = [.48, .55, .62, 1], RAMP = .4;
   const rate = () => demo ? .42 : tut ? .3 : BASE[week] * (1 + RAMP * weekT / WEEKS[week].dur);
 
   // ---------- sound ----------
@@ -135,8 +141,8 @@
   let nodes = [], links = [], dots = [], ghosts = [];
   let week = 0, weekT = 0, tut = 0, cutOnce = false, free = 0, cap = CAP, cacheOn = false;
   let answered = 0, spawned = 0, redT = 0, maxQ = 0, clock = 0, used = {}, warned = 0, hintT = 0;
-  // grace – секунды в начале недели (пока виден баннер), когда очередь ещё не краснеет; util – средняя загрузка агентов
-  let grace = 0, util = 0, mem = null;
+  // grace – секунды в начале недели (пока виден баннер), когда очередь ещё не краснеет
+  let grace = 0, mem = null;
   let sel = null, drag = null, tap = null, hover = null;
   let best = +store.get('mm-flow-best') || 0;
   const TUTK = 'mm-flow-tut', SAVE = 'mm-flow-save';
@@ -151,7 +157,7 @@
   // соединять можно только через агента: отдел – агент или агент – данные
   const canPair = (a, b) => a !== b && (a.kind === 'agent') !== (b.kind === 'agent');
   const add = (kind, key) => {
-    const n = { kind, key, x: 0, y: 0, tx: 0, ty: 0, born: clock, q: [], over: 0, pulse: 0, busy: 0, jobs: [], spawnT: 1.2, gapT: 0, spin: 0, red: false };
+    const n = { kind, key, x: 0, y: 0, tx: 0, ty: 0, born: clock, q: [], over: 0, pulse: 0, busy: 0, jobs: [], spawnT: 1.2, gapT: 0, spin: 0, red: false, load: 0, shown: 0 };
     nodes.push(n);
     return n;
   };
@@ -167,12 +173,32 @@
     const ags = agentsOf(d), s = srcOf(d);
     return !ags.length ? 'off' : !ags.some(a => linkOf(a, s)) ? 'data' : 'load';
   };
+  // агенты, которые могут ответить отделу: есть линия к отделу и к его данным
+  const ready = d => agentsOf(d).filter(a => linkOf(a, srcOf(d)));
+  // нагрузка агента: сколько запросов к нему приходит относительно того, сколько он успевает (1 = 100%).
+  // Отдел с одним агентом грузит только его; общий отдел доливается тому, у кого запас, – так и раздаёт игра
+  const loads = () => {
+    const ags = by('agent'), r = rate(), K = cap / hold(), L = new Map(ags.map(a => [a, 0]));
+    const shared = [];
+    for (const d of by('dept')) {
+      const ok = ready(d);
+      if (ok.length === 1) L.set(ok[0], L.get(ok[0]) + r);
+      else if (ok.length) shared.push(ok);
+    }
+    for (const ok of shared) for (let k = 0; k < 10; k++) {
+      const a = ok.reduce((m, x) => L.get(x) < L.get(m) ? x : m);
+      L.set(a, L.get(a) + r / 10);
+    }
+    for (const a of ags) a.load = L.get(a) / K;
+  };
+  const pct = v => `${Math.round(v * 100)}%`;
+  const agName = a => by('agent').length > 1 ? `агент ${by('agent').indexOf(a) + 1}` : 'агент';
 
   // ---------- size & layout ----------
   // Широкий экран: данные слева, агенты по центру, отделы справа. Телефон: данные сверху, отделы снизу.
   // tight – телефон боком: высоты мало, подписи уходят вбок от узлов
   // flat – узлы идут слева направо: на широком экране всегда, на телефоне – пока идёт обучение
-  let W = 800, H = 480, dpr = 1, land = true, flat = true, tight = false, R = 18, RA = 24, speed = 300, LW = 3, FS = 12, A0 = 0, A1 = 0;
+  let W = 800, H = 480, dpr = 1, land = true, flat = true, tight = false, R = 18, RA = 24, LW = 3, FS = 12, A0 = 0, A1 = 0, AG_Y = 21, AG_GAP = 16;
   const resize = () => {
     const r = cv.getBoundingClientRect();
     if (!r.width) return;
@@ -181,6 +207,7 @@
     cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
     land = W / H > 1.05;
     tight = land && H < 360;
+    AG_Y = tight ? 15 : 21; AG_GAP = tight ? 13 : 16;
     root.classList.toggle('is-port', !land);
     root.classList.toggle('is-tight', tight);
     R = tight ? 12 : Math.max(14, Math.min(22, Math.min(W, H) * .04));
@@ -209,7 +236,6 @@
     // сверху на телефоне два ряда HUD: неделя с линиями и таймер; подписи данных – над узлами
     else { a0 = (hud.hidden ? 100 : relTop(hud)) + R + 32; a1 = H - 100; c0 = 6; c1 = W - 30; }
     A0 = a0; A1 = a1;
-    speed = (a1 - a0) / 2 / TRIP;
     const row = tut ? tutRow() : null;
     for (const kind in lanes) lanes[kind].forEach((n, i, all) => {
       const f = along[kind], c = row ?? c0 + (c1 - c0) * (i + .5) / all.length;
@@ -218,6 +244,7 @@
       if (snap || !n.x) { n.x = n.tx; n.y = n.ty; }
     });
   };
+  const agLt = v => `нагрузка ${pct(v)}`;
 
   // ---------- curves ----------
   // линия – мягкая S-кривая вдоль потока, по ней точки бегут с постоянной скоростью
@@ -257,7 +284,7 @@
 
   // ---------- flow ----------
   // ask – запрос к агенту, fetch – агент идёт в данные, back – данные к агенту, answer – ответ отделу
-  const send = (l, from, kind, r) => dots.push({ l, from, kind, r, t: 0, dur: Math.max(.3, l.len / speed) });
+  const send = (l, from, kind, r) => dots.push({ l, from, kind, r, t: 0, dur: TRIP });
   // запрос вернулся в очередь: линию убрали, пока он был в пути
   const requeue = (r, held) => {
     if (held && r.ag) r.ag.busy--;
@@ -315,7 +342,10 @@
       dots.splice(i, 1);
       arrive(p);
     }
+    loads();
     for (const a of by('agent')) {
+      // цифра под агентом догоняет нагрузку плавно, чтобы не мелькала
+      a.shown += (a.load - a.shown) * Math.min(1, dt * 5);
       a.spin += dt * (.6 + a.busy * 1.2);
       for (let i = a.jobs.length; i--;) {
         const j = a.jobs[i];
@@ -335,10 +365,6 @@
     if (demo) return;
 
     if (grace > 0) grace -= dt;
-    if (!tut) {
-      const ags = by('agent'), u = ags.reduce((s, a) => s + a.busy, 0) / (cap * ags.length);
-      util += (u - util) * Math.min(1, dt / 4);
-    }
     let anyRed = false;
     for (const d of by('dept')) {
       const red = !tut && grace <= 0 && d.q.length > QMAX;
@@ -378,10 +404,10 @@
         else if (flat) out.push([x - w / 2, y + R + 5, x + w / 2, y + R + 25]);
         else out.push([x - w / 2, y - R - 23, x + w / 2, y - R - 3]);
       } else if (n.kind === 'agent') {
-        const r = RA + 10, w = tw('AI-агент 2'), ly = y + RA + (tight ? 16 : 22);
+        // под агентом две строки: имя и нагрузка; на телефоне справа от агента им не хватает ширины
+        const r = RA + 10, w = Math.max(tw('AI-агент 2'), tw(agLt(1))), ly = y + RA + AG_Y, gap = AG_GAP;
         out.push([x - r, y - r, x + r, y + r]);
-        if (flat) out.push([x - w / 2, ly - 9, x + w / 2, ly + 9]);
-        else out.push([x + RA + 8, y - 9, x + RA + 12 + w, y + 9]);
+        out.push([x - w / 2, ly - 9, x + w / 2, ly + gap + 9]);
       } else {
         const r = R * 1.02, w = tw(DEPT[n.key].name);
         out.push([x - r - 10, y - r - 12, x + r + 44, y + r + 10]);
@@ -484,15 +510,30 @@
 
   // крупное предупреждение: какой отдел сейчас сдастся и через сколько секунд
   let alarmKey = '';
+  // куда перекинуть отдел перегруженного агента: агент с запасом, к которому отдел ещё не подключён
+  const relief = d => {
+    const mine = ready(d);
+    if (!mine.length || mine.some(a => a.load < 1)) return null;
+    const cool = by('agent').filter(a => !mine.includes(a) && a.load < .8).sort((p, q) => p.load - q.load)[0];
+    if (!cool) return null;
+    const need = (linkOf(d, cool) ? 0 : 1) + (linkOf(cool, srcOf(d)) ? 0 : 1);
+    return { cool, need };
+  };
   const fix = d => {
     const k = diag(d), D = DEPT[d.key].name, S = SRC[DEPT[d.key].src].name;
     if (k === 'off') return `Проведите линию: ${D} → AI‑агент`;
     if (k === 'data') return `Проведите линию: AI‑агент → ${S}`;
-    const ags = by('agent');
-    if (ags.length > 1 && ags.some(a => !linkOf(a, d)) && free > 0) return 'Подключите отдел и его данные ко второму агенту';
-    const can = [['agent', 'второго агента'], ['gpu', 'сервер мощнее'], ['cache', 'кэш ответов']].find(([k]) => (used[k] || 0) < UPS[k].max);
-    if (week === WEEKS.length - 1 || !can) return `Держитесь: до конца недели ${timeEl.textContent}`;
-    return `Мало мощности: после недели возьмите ${can[1]}`;
+    const mine = ready(d), rel = relief(d);
+    if (rel) {
+      const to = agName(rel.cool).replace('агент', 'агенту'), hot = agName(mine[0]);
+      return free >= rel.need ? `${hot[0].toUpperCase() + hot.slice(1)} перегружен – подключите ${D} к ${to}`
+        : `Линий не хватает: ${TAP.toLowerCase()} по лишней и подключите ${D} к ${to}`;
+    }
+    // агент успевает, просто разбирает очередь, которая накопилась раньше
+    if (mine.some(a => a.load < .97)) return 'Агент успевает – очередь разбирается, держитесь';
+    const can = ['agent', 'gpu', 'cache'].some(k => (used[k] || 0) < UPS[k].max);
+    if (week === WEEKS.length - 1 || !can) return `Нагрузка выше 100% – держитесь, до конца ${timeEl.textContent}`;
+    return 'Нагрузка выше 100% – после недели возьмите усиление';
   };
   const alarm = () => {
     let html = '';
@@ -531,7 +572,8 @@
       else if (miss) v = { t: 'Верните линию', s: named(miss), g: miss };
       else if (tut === 3) v = { t: 'Фигура = нужные данные', s: `${svgShape('sq')} – запрос в Базу знаний, ${svgShape('ok', 'is-ok')} – готовый ответ`, b: 'Понятно' };
       else if (tut === 4) v = { t: 'Линии ограничены – счётчик вверху', s: `${TAP} по линии, она вернётся в запас`, hl: linksEl };
-      else v = { t: 'Продержитесь до конца таймера', s: 'Очередь больше 5 краснеет, 8 с красной – проигрыш', b: 'Начать неделю 1', hl: goalEl };
+      else if (tut === 5) v = { t: 'Под агентом – его нагрузка', s: 'До 100% он успевает. Больше – очереди растут: делите отделы между агентами', b: 'Дальше' };
+      else v = { t: 'Продержитесь до конца таймера', s: 'Очередь больше 5 краснеет, 10 с красной – проигрыш', b: 'Начать неделю 1', hl: goalEl };
       v.n = tut;
     }
     ghost = v ? v.g || null : ghost;
@@ -585,6 +627,14 @@
     for (const a of ags) if (!links.some(l => l.ag === a) && age(a) > 1) {
       ghost = [a, by('dept').sort((p, q) => q.q.length - p.q.length)[0]];
       return tip('Подключите второго агента: линия к отделу и линия к его данным');
+    }
+    // агент за 100%, а у второго запас: показываем, какой отдел перекинуть
+    for (const d of by('dept').sort((p, q) => q.q.length - p.q.length)) {
+      const rel = relief(d);
+      if (!rel) continue;
+      const to = agName(rel.cool).replace('агент', 'агенту');
+      ghost = !linkOf(d, rel.cool) ? [d, rel.cool] : [rel.cool, srcOf(d)];
+      return tip(free >= rel.need ? `Подключите ${DEPT[d.key].name} к ${to}: у него запас` : `Линий не хватает: ${TAP.toLowerCase()} по лишней и подключите ${DEPT[d.key].name} к ${to}`);
     }
     tip('');
   };
@@ -796,11 +846,11 @@
   const drawAgent = (n, i, all) => {
     const s = pop(n), r = RA * s;
     if (n.pulse) ring(n, r + 8 + (1 - n.pulse) * 10, n.pulse * .4);
-    // кольцо загрузки: сколько запросов агент держит из возможных
-    const seg = TAU / cap, gap = Math.min(.22, seg * .25);
+    // кольцо: сколько запросов агент держит из возможных; красное – агент перегружен
+    const hot = n.shown >= 1, seg = TAU / cap, gap = Math.min(.22, seg * .25);
     ctx.lineWidth = 3.2; ctx.lineCap = 'butt';
     for (let k = 0; k < cap; k++) {
-      ctx.strokeStyle = k < n.busy ? C.ink : C.line;
+      ctx.strokeStyle = k < n.busy ? hot ? RED : C.ink : C.line;
       ctx.beginPath(); ctx.arc(n.x, n.y, r + 6, -Math.PI / 2 + k * seg + gap / 2, -Math.PI / 2 + (k + 1) * seg - gap / 2); ctx.stroke();
     }
     ctx.fillStyle = C.ink; ctx.beginPath(); ctx.arc(n.x, n.y, r, 0, TAU); ctx.fill();
@@ -812,9 +862,17 @@
     }
     ctx.stroke();
     if (s < .6) return;
-    const name = all.length > 1 ? `AI-агент ${i + 1}` : 'AI-агент';
-    if (flat) text(name, n.x, n.y + r + (tight ? 16 : 22), 'center', C.muted, tight ? 11 : FS);
-    else text(name, n.x + r + 12, n.y, 'left', C.muted);
+    const name = all.length > 1 ? `AI-агент ${i + 1}` : 'AI-агент', lt = agLt(n.shown), sz = tight ? 11 : FS;
+    const ly = n.y + RA + AG_Y + AG_GAP;
+    text(name, n.x, n.y + RA + AG_Y, 'center', C.muted, sz);
+    text(lt, n.x, ly, 'center', hot ? RED : C.ink, sz);
+    // обучение, шаг про нагрузку: строка с процентами мигает рамкой
+    if (tut === 5 && state === 'run') {
+      const w = ctx.measureText(lt).width + 14, x0 = n.x - w / 2;
+      ctx.globalAlpha = .55 + Math.sin(clock * 5) * .35; ctx.strokeStyle = C.ink; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.roundRect ? ctx.roundRect(x0, ly - 11, w, 22, 11) : ctx.rect(x0, ly - 11, w, 22); ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
   };
   const drawDept = n => {
     const s = pop(n), r = R * 1.02 * s;
@@ -835,10 +893,12 @@
     if (s < .6) return;
     if (tight) text(DEPT[n.key].name, n.x + r + 45, n.y, 'left');
     else text(DEPT[n.key].name, n.x, n.y + r + (flat ? 15 : 14));
-    // очередь: сетка 3 x 4 справа от отдела, лишнее – числом над ней
-    const q = n.q, gx = n.x + r + (n.over > 0 ? 15 : 9), gy = n.y - 13.5;
-    for (let i = 0; i < Math.min(q.length, 12); i++) {
+    // очередь: сетка 3 x 4 справа от отдела, лишнее – числом над ней.
+    // Первые QMAX мест видны пустыми контурами: сколько ещё влезет, пока очередь не покраснела
+    const q = n.q, gx = n.x + r + (n.over > 0 ? 15 : 9), gy = n.y - 13.5, sh = SRC[DEPT[n.key].src].shape;
+    for (let i = 0; i < Math.max(QMAX, Math.min(q.length, 12)); i++) {
       const x = gx + (i % 3) * 9, y = gy + Math.floor(i / 3) * 9;
+      if (i >= q.length) { ctx.strokeStyle = C.muted; ctx.globalAlpha = .45; ctx.lineWidth = 1.1; shape(x, y, 3, sh); ctx.stroke(); ctx.globalAlpha = 1; continue; }
       ctx.fillStyle = i >= QMAX || n.red ? RED : C.ink;
       shape(x, y, 3.4, SRC[q[i].s].shape); ctx.fill();
     }
@@ -947,7 +1007,7 @@
   // копия в памяти – на случай, когда localStorage недоступен
   const save = () => {
     mem = JSON.stringify({
-      v: 2, week, free, cap, cacheOn, used, answered, spawned, redT, maxQ,
+      v: 3, week, free, cap, cacheOn, used, answered, spawned, redT, maxQ,
       nodes: nodes.map(n => [n.kind, n.key, n.q.length]),
       links: links.map(l => [nodes.indexOf(l.ag), nodes.indexOf(l.n)]),
     });
@@ -956,7 +1016,7 @@
   const num = v => typeof v === 'number' && isFinite(v) && v >= 0;
   // чужое или битое сохранение не должно ломать игру: проверяем всё, что потом читаем
   const valid = s => {
-    if (!s || s.v !== 2 || !Number.isInteger(s.week) || !WEEKS[s.week]) return false;
+    if (!s || s.v !== 3 || !Number.isInteger(s.week) || !WEEKS[s.week]) return false;
     if (!['free', 'answered', 'spawned', 'redT', 'maxQ'].every(k => num(s[k])) || !Number.isInteger(s.free) || s.free > 20) return false;
     if (!Number.isInteger(s.cap) || s.cap < CAP || s.cap > CAP + 4 || typeof s.cacheOn !== 'boolean') return false;
     if (!s.used || typeof s.used !== 'object' || Array.isArray(s.used) || !Object.entries(s.used).every(([k, v]) => UPS[k] && Number.isInteger(v) && v >= 0 && v <= UPS[k].max)) return false;
@@ -984,8 +1044,10 @@
   const RULES = `<ul class="fl-rules">
       <li><svg viewBox="0 0 72 24" aria-hidden="true"><path class="s" d="M13 12h12M41 12h13"/><circle class="o" cx="7" cy="12" r="5.5"/><circle class="f" cx="33" cy="12" r="8"/><path class="w" d="M29 12h8M33 8v8M30.2 9.2l5.6 5.6M35.8 9.2l-5.6 5.6"/><rect class="o" x="57" y="6" width="12" height="12"/></svg>
         <span>Проведите линии: <b>отдел → AI‑агент → данные</b></span></li>
+      <li><svg viewBox="0 0 72 24" aria-hidden="true"><circle class="f" cx="11" cy="12" r="8"/><path class="w" d="M7 12h8M11 8v8M8.2 9.2l5.6 5.6M13.8 9.2l-5.6 5.6"/><text x="26" y="16.6">85%</text></svg>
+        <span>Под агентом – нагрузка. <b>За&nbsp;100% очереди растут</b></span></li>
       <li><svg viewBox="0 0 72 24" aria-hidden="true"><circle class="rr" cx="11" cy="12" r="10"/><path class="ra" d="M11 2a10 10 0 0 1 9.5 13"/><circle class="ro" cx="11" cy="12" r="6"/><g class="rf"><rect x="26" y="4" width="6" height="6"/><rect x="35" y="4" width="6" height="6"/><rect x="44" y="4" width="6" height="6"/><rect x="26" y="14" width="6" height="6"/><rect x="35" y="14" width="6" height="6"/><rect x="44" y="14" width="6" height="6"/></g></svg>
-        <span>Очередь больше 5 краснеет. <b>8&nbsp;секунд красной – проигрыш</b></span></li>
+        <span>Очередь больше 5 краснеет. <b>10&nbsp;секунд красной – проигрыш</b></span></li>
       <li><svg viewBox="0 0 72 24" aria-hidden="true"><rect class="o t" x="2" y="2" width="68" height="20" rx="10"/><text x="36" y="16.6" text-anchor="middle">0:20</text></svg>
         <span>Продержитесь до конца таймера. <b>4&nbsp;недели – победа</b></span></li>
     </ul>`;
@@ -1021,7 +1083,7 @@
   const reset = () => {
     demo = false; state = 'run';
     nodes = []; links = []; dots = []; ghosts = []; sel = null; drag = null; tap = null; ghost = null;
-    week = 0; weekT = 0; tut = 0; cutOnce = false; free = 0; cap = CAP; cacheOn = false; lastSec = -1; grace = 0; util = 0;
+    week = 0; weekT = 0; tut = 0; cutOnce = false; free = 0; cap = CAP; cacheOn = false; lastSec = -1; grace = 0;
     answered = 0; spawned = 0; redT = 0; maxQ = 0; clock = 0; used = {}; warned = 0; hintT = 0;
     quiet();
   };
@@ -1062,7 +1124,8 @@
   const startWeek = (i, extra = 0) => {
     const w = WEEKS[i];
     week = i; weekT = 0; lastSec = -1;
-    if (w.dept) { add('dept', w.dept); add('src', w.src); }
+    // новый отдел приходит не пустым: 3 запроса уже ждут, сидеть сложа руки нельзя с первой секунды
+    if (w.dept) { const d = add('dept', w.dept); add('src', w.src); d.q = Array.from({ length: 3 }, () => ({ s: w.src, d, ag: null })); }
     free += w.lines + extra;
     // новая неделя начинается с чистого листа: без красного таймера и с короткой очередью,
     // иначе проигрыш переезжал бы в следующую неделю и в чекпойнт
@@ -1107,21 +1170,25 @@
     if (week === WEEKS.length - 1) return win();
     state = 'pick'; cancel(); sel = null;
     weekT = WEEKS[week].dur; paintGoal();
-    // второй агент предлагается, пока его не взяли; второй вариант – случайный из остальных
-    const pool = Object.keys(UPS).filter(k => k !== 'agent' && (used[k] || 0) < UPS[k].max && (!UPS[k].need || UPS[k].need())).sort(() => Math.random() - .5);
-    const two = (used.agent ? pool.slice(0, 2) : ['agent', pool[0]]).filter(Boolean);
-    const next = WEEKS[week + 1], ags = by('agent').length;
-    const ratio = demand(week + 1) / demand(week), load_ = Math.round(Math.min(1, util) * 100);
+    // все оставшиеся усиления; когда их меньше двух, есть ещё запасные линии. У каждого – прогноз нагрузки
+    const opts = ['agent', 'gpu', 'cache'].filter(k => (used[k] || 0) < UPS[k].max);
+    if (opts.length < 2 && !used.links) opts.push('links');
+    const next = WEEKS[week + 1], f0 = forecast();
+    const fc = v => `<em class="${v > 1 ? 'is-bad' : ''}"><i>${pct(v)}</i>${v > 1 ? 'не успеют' : 'нагрузка'}</em>`;
     SFX.week();
     panel(`
       <p class="fl-kicker">Неделя ${week + 1} из ${WEEKS.length} пройдена · ${answered} ${plural(answered, REQ)}</p>
       <h3>Чем усилить систему?</h3>
       <p>Неделя ${week + 2}: ${next.dept ? `новый отдел ${DEPT[next.dept].name} и ${SRC[next.src].name}` : 'вся компания, пик нагрузки'}.</p>
-      <p class="fl-load">Дальше запросов в&nbsp;${ratio.toFixed(1).replace('.', ',')} раза больше, а&nbsp;${ags > 1 ? 'агенты загружены' : 'агент загружен'} уже на&nbsp;${load_}%</p>
-      <div class="fl-picks">${two.map(k => `<button type="button" data-up="${k}"><b>${UPS[k].name}</b><span>${UPS[k].text()}</span></button>`).join('')}</div>`, true);
+      <p class="fl-load">Без усиления к&nbsp;концу недели нагрузка дойдёт до&nbsp;<span class="${f0 > 1 ? 'is-bad' : ''}">${pct(f0)}</span>. Выше 100% очереди растут</p>
+      <div class="fl-picks">${opts.map(k => `<button type="button" data-up="${k}"><b>${UPS[k].name}</b><span>${UPS[k].text()}</span>${fc(forecast(k))}</button>`).join('')}</div>`, true);
   };
-  // сколько запросов в секунду в среднем за неделю i: отделов к ней × база недели × середина разгона
-  const demand = i => (1 + WEEKS.slice(0, i + 1).filter(w => w.dept).length) * BASE[i] * (1 + RAMP / 2);
+  // прогноз: нагрузка к концу следующей недели с усилением k, если отделы поделены между агентами поровну
+  const forecast = k => {
+    const i = week + 1, n = 1 + WEEKS.slice(0, i + 1).filter(w => w.dept).length;
+    const ags = by('agent').length + (k === 'agent' ? 1 : 0), c = cap + (k === 'gpu' ? GPU : 0);
+    return n * BASE[i] * (1 + RAMP) / (ags * c / hold(cacheOn || k === 'cache'));
+  };
   const upgrade = k => {
     if (state !== 'pick') return;
     used[k] = (used[k] || 0) + 1;
@@ -1145,7 +1212,10 @@
   const lose = d => {
     state = 'over'; cancel(); sel = null;
     SFX.lose();
-    const [why, advice] = WHY[diag(d)];
+    // перегрузка при простаивающем втором агенте – отдельный совет: дело в разводке, а не в мощности
+    let k = diag(d);
+    if (k === 'load' && ready(d).every(a => a.load >= 1) && by('agent').some(a => a.load < .8)) k = 'skew';
+    const [why, advice] = WHY[k];
     record();
     panel(`
       <p class="fl-kicker">Проект закрыт на неделе ${week + 1} из ${WEEKS.length}</p>
@@ -1193,7 +1263,7 @@
     cont: retry,
     retry,
     resume,
-    next: () => { if (state !== 'run') return; if (tut === 3) { tut = 4; coach(); } else if (tut === TUT_N) finishTut(); },
+    next: () => { if (state !== 'run') return; if (tut === 3 || tut === 5) { tut++; coach(); } else if (tut === TUT_N) finishTut(); },
     skip: () => { if (state === 'run') finishTut(); },
   };
   screen.addEventListener('click', e => {
