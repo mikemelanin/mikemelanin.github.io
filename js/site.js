@@ -537,3 +537,16 @@
     addEventListener('resize', kick);
   }
 })();
+
+/* Скачать CV: имя файла с датой последнего обновления PDF */
+(() => {
+  document.querySelectorAll('a[href$="Mikhail-Melanin-CV-v2-clean.pdf"]').forEach(a => {
+    a.setAttribute('download', 'Михаил Меланьин – CV.pdf');
+    fetch(a.href, { method: 'HEAD' }).then(r => {
+      const d = new Date(r.headers.get('last-modified'));
+      if (isNaN(d)) return;
+      const f = n => String(n).padStart(2, '0');
+      a.setAttribute('download', `Михаил Меланьин – CV – ${f(d.getDate())}.${f(d.getMonth() + 1)}.${String(d.getFullYear()).slice(2)}.pdf`);
+    }).catch(() => {});
+  });
+})();
