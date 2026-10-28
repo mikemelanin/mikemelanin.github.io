@@ -309,13 +309,13 @@
       }, heard ? 4000 : 8000);
     };
     voiceSend = () => { if (!rec) return false; stop(true); return true; };
-    mic.addEventListener('click', () => {
-      if (rec) { stop(false); return; }
-      if (busy) return;
+    // браузер закрывает запись на паузе в секунду, и хвост фразы терялся. Тихо запускаем запись заново и дописываем.
+    // Непрерывный режим не берём: в Chrome слова в нём приходят с задержкой в секунды
+    const listen = again => {
       const r = rec = new SR();
       r.lang = 'ru-RU'; r.interimResults = true; r.continuous = false;
       base = input.value.trim();
-      heard = false;
+      const born = Date.now();
       ['soundstart', 'speechstart', 'speechend', 'soundend', 'audioend', 'nomatch'].forEach(t => r.addEventListener(t, () => {
         vlog(t);
         if (r === rec && form.dataset.voice === 'rec' && /start/.test(t)) watch();
@@ -325,7 +325,7 @@
         if (r === rec && form.dataset.voice === 'wait') { set('rec'); watch(); }
       };
       r.onresult = e => {
-        const text = [...e.results].map(x => x[0].transcript).join('').trim();
+        const text = [...e.results].map(x => x[0].transcript.trim()).filter(Boolean).join(' ');
         vlog('result', e.results.length, e.results[e.results.length - 1].isFinal ? 'final' : '', text);
         if (r !== rec) return;
         if (text) heard = true;
@@ -342,12 +342,26 @@
           input.placeholder = 'Нет доступа к микрофону, напишите текстом';
         }
       };
-      r.onend = () => { vlog('end'); if (r === rec) finish(); };
+      r.onend = () => {
+        vlog('end');
+        if (r !== rec) return;
+        // запись закрылась сама посреди диктовки – продолжаем слушать, пока человек не нажал стоп или не замолчал
+        if (form.dataset.voice === 'rec' && heard && Date.now() - born > 1000) { vlog('restart'); listen(true); }
+        else finish();
+      };
+      try { r.start(); } catch (err) { vlog('start failed', err.message); finish(true); if (!again) note('Микрофон не включился. Нажмите ещё раз'); }
+    };
+    mic.addEventListener('click', () => {
+      if (rec) { stop(false); return; }
+      if (busy) return;
+      heard = false;
       set('wait');
       vlog('click start');
+      listen(false);
+      if (!rec) return;
+      const r = rec;
       clearTimeout(quiet);
       quiet = setTimeout(() => { if (r === rec && form.dataset.voice === 'wait') { vlog('no start'); finish(true); note('Микрофон не включился. Нажмите ещё раз'); } }, 6000);
-      try { r.start(); } catch (err) { vlog('start failed', err.message); finish(true); note('Микрофон не включился. Нажмите ещё раз'); }
     });
   }
 
