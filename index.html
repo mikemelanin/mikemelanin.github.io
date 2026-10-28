@@ -16,7 +16,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&family=Unbounded:wght@500;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/site.css?v=25">
+<link rel="stylesheet" href="css/site.css?v=26">
 </head>
 <body>
 <header class="topbar blue">
@@ -224,6 +224,7 @@
         <div class="chat-log" aria-live="polite"></div>
         <div class="chat-chips"></div>
         <p class="chat-hint" aria-hidden="true">Опишите свою задачу или задайте вопрос</p>
+        <p class="chat-voice" aria-live="polite" hidden><i aria-hidden="true"></i><span></span></p>
         <form class="chat-form">
           <label class="sr-only" for="twin-input">Вопрос двойнику</label>
           <textarea id="twin-input" rows="1" autocomplete="off" placeholder="Спросите о чём угодно"></textarea>
@@ -252,6 +253,6 @@
 <script src="js/venom-button.js?v=9" defer></script>
 <script src="game/flow.js?v=3" defer></script>
 <script src="twin/kb.js?v=2" defer></script>
-<script src="twin/twin.js?v=2" defer></script>
+<script src="twin/twin.js?v=3" defer></script>
 </body>
 </html>

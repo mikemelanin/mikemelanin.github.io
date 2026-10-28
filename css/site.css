@@ -687,6 +687,8 @@ body { --cut: var(--paper); }
   font: inherit; font-size: 16px; line-height: 1.5; padding: 9px 0; max-height: 120px; outline: none;
 }
 .chat-form textarea::placeholder { color: var(--muted); }
+.chat-form textarea { scrollbar-width: none; }
+.chat-form textarea::-webkit-scrollbar { display: none; }
 .chat-form textarea:placeholder-shown { white-space: nowrap; overflow: hidden; }
 .chat-form button {
   flex: none; width: 44px; height: 44px; border-radius: 50%; border: 0; cursor: pointer;
@@ -698,10 +700,24 @@ body { --cut: var(--paper); }
 .chat-form .chat-mic { position: relative; background: var(--card); color: var(--figure); }
 .chat-mic[hidden] { display: none; }
 .chat-mic .i-stop { display: none; }
-.chat-mic.is-rec { background: #FF4D4D; color: #fff; }
-.chat-mic.is-rec .i-mic { display: none; }
-.chat-mic.is-rec .i-stop { display: block; }
-.chat-mic.is-rec::before { content: ''; position: absolute; inset: 0; border-radius: 50%; border: 2px solid #FF4D4D; animation: ring 1.2s cubic-bezier(.2,.6,.3,1) infinite; }
+.chat-form[data-voice=rec] .chat-mic, .chat-form[data-voice=done] .chat-mic { background: #FF4D4D; color: #fff; }
+.chat-form[data-voice=rec] .chat-mic .i-mic, .chat-form[data-voice=done] .chat-mic .i-mic { display: none; }
+.chat-form[data-voice=rec] .chat-mic .i-stop, .chat-form[data-voice=done] .chat-mic .i-stop { display: block; }
+.chat-form[data-voice=rec] .chat-mic::before { content: ''; position: absolute; inset: 0; border-radius: 50%; border: 2px solid #FF4D4D; animation: ring 1.2s cubic-bezier(.2,.6,.3,1) infinite; }
+/* микрофон включается: крутилка вокруг кнопки; дораспознаём или отправляем – крутилка на кнопке */
+.chat-form[data-voice=wait] .chat-mic::before, .chat-form[data-voice=done]:not(.is-sending) .chat-mic::before, .chat-form.is-sending [type=submit]::before {
+  content: ''; position: absolute; inset: -4px; border-radius: 50%; border: 2.5px solid var(--figure); border-right-color: transparent; animation: spin .8s linear infinite;
+}
+.chat-form[data-voice=done] .chat-mic::before { border-color: #FF4D4D; border-right-color: transparent; }
+.chat-form [type=submit] { position: relative; }
+.chat-form.is-sending [type=submit] { opacity: .6; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.chat-voice { display: flex; align-items: center; gap: 8px; margin: 4px 20px 8px; font-size: 13px; font-weight: 600; color: var(--figure); }
+.chat-voice[hidden] { display: none; }
+.chat-voice i { flex: none; width: 10px; height: 10px; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent; animation: spin .8s linear infinite; }
+.chat-voice[data-s=rec] i { background: #FF4D4D; border-color: #FF4D4D; animation: tw-blink 1s ease-in-out infinite; }
+.chat-form[data-voice] { animation: none; }
+.twin-chat.is-voice .chat-hint { display: none; }
 @media (max-width: 860px) {
   .twin-chat { height: min(600px, 78svh); }
   .chat-chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }

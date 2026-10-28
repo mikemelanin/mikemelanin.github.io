@@ -216,10 +216,22 @@
     if (bld) BLD.open(bld.dataset.build || null, bld.dataset.q);
   });
 
+  // поле растёт под текст (до max-height в CSS) и показывает последние строки
+  const fit = () => {
+    input.style.height = 'auto';
+    input.style.height = input.scrollHeight + 'px';
+    input.scrollTop = input.scrollHeight;
+  };
+  input.addEventListener('input', fit);
+
+  let voiceSend = null;
   form.addEventListener('submit', e => {
     e.preventDefault();
+    if (voiceSend && voiceSend()) return;
+    if (busy) return;
     const q = input.value;
     input.value = '';
+    fit();
     ask(q);
   });
   input.addEventListener('keydown', e => {
@@ -227,38 +239,73 @@
   });
 
   // ---------- voice ----------
+  // Состояния в form.dataset.voice: wait – браузер включает микрофон (крутилка), rec – слушаем, done – дораспознаём последние слова.
+  // Текст диктовки дописывается к тому, что уже в поле. Стоп – текст остаётся, можно поправить или дописать;
+  // Отправить во время диктовки – ждём последние слова и отправляем всю фразу.
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   const mic = form.querySelector('.chat-mic');
+  const status = root.querySelector('.chat-voice');
   if (SR && mic) {
     mic.hidden = false;
-    let rec = null;
+    let rec = null, base = '', sendAfter = false, guard;
     const PH = input.placeholder;
-    const stop = () => { mic.classList.remove('is-rec'); mic.setAttribute('aria-label', 'Сказать голосом'); input.placeholder = PH; rec = null; };
+    const set = s => {
+      if (s) form.dataset.voice = s; else delete form.dataset.voice;
+      form.classList.toggle('is-sending', s === 'done' && sendAfter);
+      root.classList.toggle('is-voice', !!s);
+      mic.setAttribute('aria-label', s ? 'Закончить запись' : 'Сказать голосом');
+      input.placeholder = s === 'wait' ? 'Включаю микрофон…' : s ? 'Говорите…' : PH;
+      if (status) {
+        status.hidden = !s;
+        status.dataset.s = s;
+        status.lastChild.textContent = { wait: 'Включаю микрофон…', rec: 'Говорите, текст появится в поле', done: sendAfter ? 'Распознаю и отправляю…' : 'Распознаю…' }[s] || '';
+      }
+    };
+    const finish = () => {
+      clearTimeout(guard);
+      if (!rec) return;
+      rec = null;
+      const go = sendAfter;
+      sendAfter = false;
+      set('');
+      fit();
+      if (go) form.requestSubmit();
+    };
+    const stop = go => {
+      if (go) sendAfter = true;
+      const was = form.dataset.voice;
+      set('done');
+      if (was !== 'done') {
+        try { was === 'wait' ? rec.abort() : rec.stop(); } catch { finish(); return; }
+      }
+      clearTimeout(guard);
+      guard = setTimeout(finish, 3000); // Safari иногда не присылает onend
+    };
+    voiceSend = () => { if (!rec) return false; stop(true); return true; };
     mic.addEventListener('click', () => {
-      if (rec) { rec.stop(); return; }
+      if (rec) { stop(false); return; }
       if (busy) return;
-      rec = new SR();
-      rec.lang = 'ru-RU'; rec.interimResults = true; rec.continuous = false;
-      let text = '';
-      rec.onresult = e => {
-        text = [...e.results].map(r => r[0].transcript).join('').trim();
-        input.value = text;
+      const r = rec = new SR();
+      r.lang = 'ru-RU'; r.interimResults = true; r.continuous = false;
+      base = input.value.trim();
+      r.onstart = r.onaudiostart = () => { if (r === rec && form.dataset.voice === 'wait') set('rec'); };
+      r.onresult = e => {
+        if (r !== rec) return;
+        const text = [...e.results].map(x => x[0].transcript).join('').trim();
+        input.value = [base, text].filter(Boolean).join(' ');
+        fit();
       };
-      rec.onerror = e => {
-        stop();
-        if (e.error === 'not-allowed' || e.error === 'service-not-allowed') input.placeholder = 'Нет доступа к микрофону, напишите текстом';
+      r.onerror = e => {
+        if (r !== rec) return;
+        if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
+          sendAfter = false;
+          finish();
+          input.placeholder = 'Нет доступа к микрофону, напишите текстом';
+        }
       };
-      rec.onend = () => {
-        const r = rec; stop();
-        if (r && text) { input.value = ''; ask(text); }
-      };
-      try {
-        rec.start();
-        mic.classList.add('is-rec');
-        mic.setAttribute('aria-label', 'Закончить запись');
-        input.value = '';
-        input.placeholder = 'Слушаю…';
-      } catch { stop(); }
+      r.onend = () => { if (r === rec) finish(); };
+      set('wait');
+      try { r.start(); } catch { finish(); }
     });
   }
 
@@ -269,14 +316,14 @@
     if ('IntersectionObserver' in window) new IntersectionObserver(([e]) => seen = e.isIntersecting).observe(root);
     const step = () => {
       let delay = back ? 28 : 60;
-      const idle = !input.value && document.activeElement !== input && !(mic && mic.classList.contains('is-rec'));
+      const idle = !input.value && document.activeElement !== input && !form.dataset.voice;
       if (seen && idle) {
         const s = KB.ideas[n];
         k += back ? -1 : 1;
         input.placeholder = s.slice(0, k) + '|';
         if (k >= s.length && !back) { back = true; delay = 1800; }
         else if (k <= 0 && back) { back = false; n = (n + 1) % KB.ideas.length; delay = 400; }
-      } else if (document.activeElement === input && input.placeholder !== PH) input.placeholder = PH;
+      } else if (document.activeElement === input && !form.dataset.voice && input.placeholder !== PH) input.placeholder = PH;
       setTimeout(step, delay);
     };
     step();
