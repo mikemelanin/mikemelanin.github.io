@@ -715,6 +715,7 @@ body { --cut: var(--paper); }
 .chat-voice { display: flex; align-items: center; gap: 8px; margin: 4px 20px 8px; font-size: 13px; font-weight: 600; color: var(--figure); }
 .chat-voice[hidden] { display: none; }
 .chat-voice i { flex: none; width: 10px; height: 10px; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent; animation: spin .8s linear infinite; }
+.chat-voice[data-s=note] i { display: none; }
 .chat-voice[data-s=rec] i { background: #FF4D4D; border-color: #FF4D4D; animation: tw-blink 1s ease-in-out infinite; }
 .chat-form[data-voice] { animation: none; }
 .twin-chat.is-voice .chat-hint { display: none; }

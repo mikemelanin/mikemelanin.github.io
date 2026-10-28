@@ -247,8 +247,12 @@
   const status = root.querySelector('.chat-voice');
   if (SR && mic) {
     mic.hidden = false;
-    let rec = null, base = '', sendAfter = false, guard;
+    let rec = null, base = '', sendAfter = false, guard, quiet, heard = false;
     const PH = input.placeholder;
+    // ?voicelog в адресе – журнал событий распознавания под чатом, чтобы разбирать сбои на телефоне
+    const logBox = /[?&]voicelog/.test(location.search) && root.insertAdjacentElement('afterend', Object.assign(document.createElement('pre'), { style: 'font-size:11px;white-space:pre-wrap;max-height:240px;overflow:auto;margin-top:8px' }));
+    const t0 = Date.now();
+    const vlog = (...a) => { if (logBox) logBox.textContent = `${((Date.now() - t0) / 1000).toFixed(1)} ${a.join(' ')}\n` + logBox.textContent; };
     const set = s => {
       if (s) form.dataset.voice = s; else delete form.dataset.voice;
       form.classList.toggle('is-sending', s === 'done' && sendAfter);
@@ -261,10 +265,21 @@
         status.lastChild.textContent = { wait: 'Включаю микрофон…', rec: 'Говорите, текст появится в поле', done: sendAfter ? 'Распознаю и отправляю…' : 'Распознаю…' }[s] || '';
       }
     };
-    const finish = () => {
-      clearTimeout(guard);
-      if (!rec) return;
+    // подсказка под чатом на пару секунд, когда запись сорвалась
+    const note = msg => {
+      if (!status) return;
+      status.hidden = false;
+      status.dataset.s = 'note';
+      status.lastChild.textContent = msg;
+      setTimeout(() => { if (!rec && status.dataset.s === 'note') status.hidden = true; }, 3500);
+    };
+    // drop – запись зависла: глушим её, иначе следующая на iPhone может не услышать ни слова
+    const finish = drop => {
+      clearTimeout(guard); clearTimeout(quiet);
+      const r = rec;
+      if (!r) return;
       rec = null;
+      if (drop) try { r.abort(); } catch {}
       const go = sendAfter;
       sendAfter = false;
       set('');
@@ -275,11 +290,23 @@
       if (go) sendAfter = true;
       const was = form.dataset.voice;
       set('done');
+      clearTimeout(quiet);
       if (was !== 'done') {
-        try { was === 'wait' ? rec.abort() : rec.stop(); } catch { finish(); return; }
+        try { was === 'wait' ? rec.abort() : rec.stop(); } catch { finish(true); return; }
       }
       clearTimeout(guard);
-      guard = setTimeout(finish, 3000); // Safari иногда не присылает onend
+      guard = setTimeout(() => { vlog('no end after stop'); finish(true); }, 3000); // Safari иногда не присылает onend
+    };
+    // сторож: iPhone порой молча перестаёт слушать, а запись выглядит живой.
+    // Нет слов 8 секунд – сбрасываем и просим нажать ещё раз; слова были и 4 секунды тишина – закругляем, текст остаётся в поле
+    const watch = () => {
+      clearTimeout(quiet);
+      quiet = setTimeout(() => {
+        if (!rec || form.dataset.voice === 'done') return;
+        vlog('watchdog', heard ? 'finalize' : 'nothing heard');
+        if (heard) stop(false);
+        else { finish(true); note('Не расслышал. Нажмите микрофон и говорите'); }
+      }, heard ? 4000 : 8000);
     };
     voiceSend = () => { if (!rec) return false; stop(true); return true; };
     mic.addEventListener('click', () => {
@@ -288,14 +315,26 @@
       const r = rec = new SR();
       r.lang = 'ru-RU'; r.interimResults = true; r.continuous = false;
       base = input.value.trim();
-      r.onstart = r.onaudiostart = () => { if (r === rec && form.dataset.voice === 'wait') set('rec'); };
+      heard = false;
+      ['soundstart', 'speechstart', 'speechend', 'soundend', 'audioend', 'nomatch'].forEach(t => r.addEventListener(t, () => {
+        vlog(t);
+        if (r === rec && form.dataset.voice === 'rec' && /start/.test(t)) watch();
+      }));
+      r.onstart = r.onaudiostart = e => {
+        vlog(e.type);
+        if (r === rec && form.dataset.voice === 'wait') { set('rec'); watch(); }
+      };
       r.onresult = e => {
-        if (r !== rec) return;
         const text = [...e.results].map(x => x[0].transcript).join('').trim();
+        vlog('result', e.results.length, e.results[e.results.length - 1].isFinal ? 'final' : '', text);
+        if (r !== rec) return;
+        if (text) heard = true;
         input.value = [base, text].filter(Boolean).join(' ');
         fit();
+        watch();
       };
       r.onerror = e => {
+        vlog('error', e.error);
         if (r !== rec) return;
         if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
           sendAfter = false;
@@ -303,9 +342,12 @@
           input.placeholder = 'Нет доступа к микрофону, напишите текстом';
         }
       };
-      r.onend = () => { if (r === rec) finish(); };
+      r.onend = () => { vlog('end'); if (r === rec) finish(); };
       set('wait');
-      try { r.start(); } catch { finish(); }
+      vlog('click start');
+      clearTimeout(quiet);
+      quiet = setTimeout(() => { if (r === rec && form.dataset.voice === 'wait') { vlog('no start'); finish(true); note('Микрофон не включился. Нажмите ещё раз'); } }, 6000);
+      try { r.start(); } catch (err) { vlog('start failed', err.message); finish(true); note('Микрофон не включился. Нажмите ещё раз'); }
     });
   }
 
