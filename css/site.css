@@ -696,7 +696,7 @@ body { --cut: var(--paper); }
 }
 .chat-form button:hover { transform: translateY(-2px); }
 .chat-form button svg { width: 20px; height: 20px; }
-.chat-form.is-busy button { opacity: .4; pointer-events: none; }
+.chat-form.is-busy [type=submit] { opacity: .4; }
 .chat-form .chat-mic { position: relative; background: var(--card); color: var(--figure); }
 .chat-mic[hidden] { display: none; }
 .chat-mic .i-stop { display: none; }

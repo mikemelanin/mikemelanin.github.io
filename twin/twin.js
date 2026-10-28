@@ -15,7 +15,7 @@
   const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const byId = Object.fromEntries(KB.entries.map(e => [e.id, e]));
   const history = [];
-  let busy = false;
+  let busy = false, queued = false;
 
   // ---------- matching ----------
   const ENDINGS = ['иями', 'ями', 'ами', 'ого', 'его', 'ому', 'ему', 'ыми', 'ими', 'иях', 'ешь', 'ете', 'ишь', 'ите', 'ость', 'ах', 'ях', 'ов', 'ев', 'ий', 'ый', 'ой', 'ая', 'яя', 'ое', 'ее', 'ие', 'ые', 'ую', 'юю', 'ом', 'ем', 'ам', 'ям', 'ет', 'ит', 'ут', 'ют', 'ат', 'ят', 'ть', 'ся', 'сь', 'а', 'я', 'о', 'е', 'и', 'ы', 'у', 'ю', 'ь', 'й'];
@@ -206,6 +206,7 @@
     scrollDown();
     busy = false;
     form.classList.remove('is-busy');
+    if (queued) { queued = false; form.requestSubmit(); }
   };
 
   // текст вопроса копируем: если Telegram не подставит его в чат, его легко вставить
@@ -225,10 +226,18 @@
   input.addEventListener('input', fit);
 
   let voiceSend = null;
+  // Отправить, пока двойник ещё отвечает: не теряем нажатие, отправим сразу после ответа
+  const later = root.querySelector('.chat-voice');
   form.addEventListener('submit', e => {
     e.preventDefault();
     if (voiceSend && voiceSend()) return;
-    if (busy) return;
+    if (busy) {
+      if (!input.value.trim()) return;
+      queued = true;
+      if (later) { later.hidden = false; later.dataset.s = 'note'; later.lastChild.textContent = 'Отправлю, как только двойник ответит'; }
+      return;
+    }
+    if (later && later.dataset.s === 'note') later.hidden = true;
     const q = input.value;
     input.value = '';
     fit();
@@ -353,7 +362,7 @@
     };
     mic.addEventListener('click', () => {
       if (rec) { stop(false); return; }
-      if (busy) return;
+      queued = false; // человек решил дописать – ждём новое нажатие Отправить
       heard = false;
       set('wait');
       vlog('click start');
